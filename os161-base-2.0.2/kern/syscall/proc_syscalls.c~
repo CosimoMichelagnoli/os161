@@ -95,7 +95,7 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
     return ENOMEM;
   }
 
-  proc_addChild(curproc,newp->p_pid); 
+  proc_addChildren(curproc,newp->p_pid); 
 
 
   /* done here as we need to duplicate the address space 

@@ -162,9 +162,8 @@ proc_end_waitpid(struct proc *proc) {
 
 #if OPT_FORK
 void proc_addChild(struct proc *father,pid_t cpid){
-  pid_t *temp= kmalloc(sizeof(pid_t));
-  *temp=cpid;
-  array_add(father->p_children,(void *)temp,NULL);
+  
+  array_add(father->p_children,cpid,NULL);
 
 }
 #endif
