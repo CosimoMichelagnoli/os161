@@ -145,6 +145,7 @@ syscall(struct trapframe *tf)
 	        /* TODO: just avoid crash */
  	        sys__exit((int)tf->tf_a0);
                 break;
+#if OPT_WAITPID
 	    case SYS_waitpid:
 	        retval = sys_waitpid((pid_t)tf->tf_a0,
 				(userptr_t)tf->tf_a1,
@@ -163,7 +164,7 @@ syscall(struct trapframe *tf)
 	        err = sys_fork(tf,&retval);
                 break;
 #endif
-
+#endif
 #endif
 
 	    default:
