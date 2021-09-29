@@ -35,6 +35,7 @@
 #include "opt-syscalls.h"
 #include "opt-fork.h"
 #include "opt-file.h"
+#include "opt-waitpid.h"
 
 struct trapframe; /* from <machine/trapframe.h> */
 
