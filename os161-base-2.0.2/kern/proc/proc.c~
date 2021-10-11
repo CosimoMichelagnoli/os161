@@ -176,9 +176,9 @@ proc_end_waitpid(struct proc *proc) {
 void proc_addChild(struct proc *father,pid_t cpid){
   pid_t *temp= kmalloc(sizeof(pid_t));
   *temp=cpid;
-  spinlock_acquire(&father->p_lock);
+  spinlock_acquire(&proc->p_lock);
   array_add(father->p_children,(void *)temp,NULL);
-  spinlock_release(&father->p_lock);
+  spinlock_release(&proc->p_lock);
 
 }
 #endif

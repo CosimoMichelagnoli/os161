@@ -40,8 +40,6 @@
 #include <current.h>
 #include <synch.h>
 
-#include <opt-synch.h>
-
 ////////////////////////////////////////////////////////////
 //
 // Semaphore.

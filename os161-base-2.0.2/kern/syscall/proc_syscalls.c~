@@ -19,8 +19,6 @@
 #include <current.h>
 #include <synch.h>
 
-#include <opt-waitpid.h>
-#include <opt-fork.h>
 /*
  * system calls for process management
  */

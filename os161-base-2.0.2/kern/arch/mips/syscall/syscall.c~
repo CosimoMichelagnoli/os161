@@ -39,7 +39,7 @@
 #include <opt-waitpid.h>
 #include <opt-fork.h>
 #include <opt-file.h>
-#include <opt-syscalls.h>
+#include <opt-syscall.h>
 
 /*
  * System call dispatcher.
