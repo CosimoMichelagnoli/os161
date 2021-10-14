@@ -88,16 +88,17 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
   struct trapframe *tf_child;
   struct proc *newp;
   int result;
-  
-
+  pid_t	pid;
+  struct proc *debug =curproc;
   KASSERT(curproc != NULL);
+  KASSERT(debug != NULL);
 
   newp = proc_create_runprogram(curproc->p_name);
   if (newp == NULL) {
     return ENOMEM;
   }
-
-  proc_addChild(curproc,newp->p_pid); 
+  pid = newp->p_pid;
+  proc_addChild(curproc,pid); 
 
 
   /* done here as we need to duplicate the address space 
@@ -132,7 +133,7 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
     return ENOMEM;
   }
 
-  *retval = newp->p_pid;
+  *retval = pid;
 
   return 0;
 }

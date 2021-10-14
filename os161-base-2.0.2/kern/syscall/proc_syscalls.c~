@@ -19,6 +19,8 @@
 #include <current.h>
 #include <synch.h>
 
+#include <opt-waitpid.h>
+#include <opt-fork.h>
 /*
  * system calls for process management
  */
@@ -87,8 +89,9 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
   struct proc *newp;
   int result;
   
-
+  struct proc *debug =curproc;
   KASSERT(curproc != NULL);
+  KASSERT(debug != NULL);
 
   newp = proc_create_runprogram(curproc->p_name);
   if (newp == NULL) {

@@ -144,21 +144,24 @@ proc_end_waitpid(struct proc *proc) {
 #if OPT_WAITPID
   /* remove the process from the table */
   int i,n;
+  //struct array *a;
   spinlock_acquire(&processTable.lk);
   i = proc->p_pid;
   KASSERT(i>0 && i<=MAX_PROC);
   processTable.proc[i] = NULL;
   spinlock_release(&processTable.lk);
-  n= array_num(proc->p_children); //numero di childs
+  //sizeof(proc->p_children)/sizeof(proc->p_children[0]); // //numero di childs
+  //a = proc->p_children;
 
 
 #if OPT_FORK
-  spinlock_acquire(&proc->p_lock);
+  n= array_num(proc->p_children);
+  //spinlock_acquire(&proc->p_lock);
   for(i=0; i<n;i++){
      array_remove(proc->p_children, 0);
   }
   array_destroy(proc->p_children);
-  spinlock_release(&proc->p_lock);
+  //spinlock_release(&proc->p_lock);
 #endif
 
 #if USE_SEMAPHORE_FOR_WAITPID
