@@ -150,12 +150,12 @@ proc_end_waitpid(struct proc *proc) {
   KASSERT(i>0 && i<=MAX_PROC);
   processTable.proc[i] = NULL;
   spinlock_release(&processTable.lk);
-  n= array_num(proc->p_children);
   //sizeof(proc->p_children)/sizeof(proc->p_children[0]); // //numero di childs
   //a = proc->p_children;
 
 
 #if OPT_FORK
+  n= array_num(proc->p_children);
   //spinlock_acquire(&proc->p_lock);
   for(i=0; i<n;i++){
      array_remove(proc->p_children, 0);

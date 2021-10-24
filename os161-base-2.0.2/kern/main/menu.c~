@@ -138,7 +138,7 @@ common_prog(int nargs, char **args)
 	 * once you write the code for handling that.
 	 */
 
-	return e;
+	return 0;
 }
 
 /*

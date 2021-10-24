@@ -156,12 +156,12 @@ proc_end_waitpid(struct proc *proc) {
 
 #if OPT_FORK
   n= array_num(proc->p_children);
-  //spinlock_acquire(&proc->p_lock);
+  spinlock_acquire(&proc->p_lock);
   for(i=0; i<n;i++){
      array_remove(proc->p_children, 0);
   }
   array_destroy(proc->p_children);
-  //spinlock_release(&proc->p_lock);
+  spinlock_release(&proc->p_lock);
 #endif
 
 #if USE_SEMAPHORE_FOR_WAITPID

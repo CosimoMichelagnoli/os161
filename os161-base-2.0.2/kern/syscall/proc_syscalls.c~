@@ -88,7 +88,7 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
   struct trapframe *tf_child;
   struct proc *newp;
   int result;
-  
+  pid_t	pid;
   struct proc *debug =curproc;
   KASSERT(curproc != NULL);
   KASSERT(debug != NULL);
@@ -97,27 +97,28 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
   if (newp == NULL) {
     return ENOMEM;
   }
-
-  proc_addChild(curproc,newp->p_pid); 
+  pid = newp->p_pid;
+  proc_addChild(curproc,pid); 
 
 
   /* done here as we need to duplicate the address space 
      of thbe current process */
-  as_copy(curproc->p_addrspace, &(newp->p_addrspace));
-  if(newp->p_addrspace == NULL){
-    proc_destroy(newp); 
-    return ENOMEM; 
-  }
-
-  proc_file_table_copy(newp,curproc);
-
-  /* we need a copy of the parent's trapframe */
   tf_child = kmalloc(sizeof(struct trapframe));
   if(tf_child == NULL){
     proc_destroy(newp);
     return ENOMEM; 
   }
   memcpy(tf_child, ctf, sizeof(struct trapframe));
+  as_copy(curproc->p_addrspace, &(newp->p_addrspace));
+  if(newp->p_addrspace == NULL){
+    proc_destroy(newp); 
+    return ENOMEM; 
+  }
+  call_enter_forked_process((void*)tf_child,0);
+
+  proc_file_table_copy(newp,curproc);
+
+  /* we need a copy of the parent's trapframe */
 
   /* TO BE DONE: linking parent/child, so that child terminated 
      on parent exit */
@@ -133,7 +134,7 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
     return ENOMEM;
   }
 
-  *retval = newp->p_pid;
+  *retval = pid;
 
   return 0;
 }

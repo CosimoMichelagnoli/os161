@@ -103,21 +103,22 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
 
   /* done here as we need to duplicate the address space 
      of thbe current process */
-  as_copy(curproc->p_addrspace, &(newp->p_addrspace));
-  if(newp->p_addrspace == NULL){
-    proc_destroy(newp); 
-    return ENOMEM; 
-  }
-
-  proc_file_table_copy(newp,curproc);
-
-  /* we need a copy of the parent's trapframe */
   tf_child = kmalloc(sizeof(struct trapframe));
   if(tf_child == NULL){
     proc_destroy(newp);
     return ENOMEM; 
   }
   memcpy(tf_child, ctf, sizeof(struct trapframe));
+  as_copy(curproc->p_addrspace, &(newp->p_addrspace));
+  if(newp->p_addrspace == NULL){
+    proc_destroy(newp); 
+    return ENOMEM; 
+  }
+
+
+  proc_file_table_copy(newp,curproc);
+
+  /* we need a copy of the parent's trapframe */
 
   /* TO BE DONE: linking parent/child, so that child terminated 
      on parent exit */
