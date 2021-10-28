@@ -390,6 +390,7 @@ defoption syscalls
 defoption synch
 defoption waitpid
 defoption fork
+defoption execv
 defoption file
 optfile syscalls syscall/file_syscalls.c
 optfile syscalls syscall/proc_syscalls.c

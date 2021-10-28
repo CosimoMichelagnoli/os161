@@ -114,7 +114,7 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
     proc_destroy(newp); 
     return ENOMEM; 
   }
-  call_enter_forked_process((void*)tf_child,0);
+
 
   proc_file_table_copy(newp,curproc);
 

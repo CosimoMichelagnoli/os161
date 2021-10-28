@@ -384,6 +384,16 @@ file      syscall/time_syscalls.c
 file      main/main.c
 file      main/menu.c
 
+#### NEW 04/08 FOR GIANFRY KERNEL####
+
+defoption syscalls
+defoption synch
+defoption waitpid
+defoption fork
+defoption file
+optfile syscalls syscall/file_syscalls.c
+optfile syscalls syscall/proc_syscalls.c
+
 ########################################
 #                                      #
 #             Filesystems              #

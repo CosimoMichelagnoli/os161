@@ -21,6 +21,7 @@
 
 #include <opt-waitpid.h>
 #include <opt-fork.h>
+#include <opt-execv.h>
 /*
  * system calls for process management
  */
@@ -138,4 +139,7 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
 
   return 0;
 }
+#endif
+
+#if OPT_EXECV
 #endif

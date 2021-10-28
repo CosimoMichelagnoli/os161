@@ -36,4 +36,5 @@ options synch
 options waitpid
 options fork
 options file
+options execv
 
