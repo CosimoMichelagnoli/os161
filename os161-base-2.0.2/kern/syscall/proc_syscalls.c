@@ -8,6 +8,7 @@
 #include <types.h>
 #include <kern/unistd.h>
 #include <kern/errno.h>
+#include <kern/fcntl.h> //here it's defined O_RDONLY
 #include <clock.h>
 #include <copyinout.h>
 #include <syscall.h>
@@ -15,13 +16,14 @@
 #include <proc.h>
 #include <thread.h>
 #include <addrspace.h>
+//#include <vm.h>
+#include <vfs.h>
 #include <mips/trapframe.h>
 #include <current.h>
 #include <synch.h>
+#include <test.h>
+#include <copyinout.h>
 
-#include <opt-waitpid.h>
-#include <opt-fork.h>
-#include <opt-execv.h>
 /*
  * system calls for process management
  */
@@ -142,4 +144,109 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
 #endif
 
 #if OPT_EXECV
+int
+sys_execv(char *progname, char **args){
+	//TODO check to free all the memory in case of error
+	int i = 0;
+	int result, argc;
+	char **kargs[ARG_MAX];
+	char **uargs;
+	char *kprogname;
+	struct vnode *v;
+	struct addrspace *as;
+	vaddr_t entrypoint, stackptr;
+	KASSERT(args !=NULL);
+	//--------------------copy arguments from user space into kernel------------------------- 
+	
+
+	while(args[i] != NULL){
+
+		kargs[i] = kmalloc(strlen(args[i])+1);
+		if(kargs[i] == NULL)	
+			return ENOMEM;	
+		
+
+		result = copyin((userptr_t)args[i], kargs[i], strlen(args[i])+1);
+		if(result){
+			//kfree_all(kargs);
+			kfree(kargs);
+			return result;
+		}
+		i++;
+	}
+	kargs[i] = NULL;
+
+	argc=i;  //keep trac of #arg
+	
+	kprogname = (char *) kmalloc(strlen(progname)+1);
+	if(kprogname == NULL)	
+		return ENOMEM;
+	result = copyin((userptr_t)progname, kprogname, strlen(progname)+1);
+	if(result){
+		//kfree_all(kargs);
+		kfree(kargs);
+		kfree(kprogname);
+		return result;
+	}
+
+
+
+	//-----------open the executable, create a new address space and load the elf into it--------
+	
+	/* Open the file. */
+	result = vfs_open(progname, O_RDONLY, 0, &v);
+	if (result) {
+		return result;
+	}
+
+	/* We should be a new process. */
+	KASSERT(proc_getas() == NULL);
+	
+	/* Create a new address space. */
+	as = as_create();
+	if (as == NULL) {
+		vfs_close(v);
+		return ENOMEM;
+	}
+
+	/* Switch to it and activate it. */
+	proc_setas(as);
+	as_activate();
+
+	/* Load the executable. */
+	result = load_elf(v, &entrypoint);
+	if (result) {
+		/* p_addrspace will go away when curproc is destroyed */
+		vfs_close(v);
+		return result;
+	}
+	/* Done with the file now. */
+	vfs_close(v);
+	
+	/* Define the user stack in the address space */
+	result = as_define_stack(as, &stackptr);
+	if (result) {
+		/* p_addrspace will go away when curproc is destroyed */
+		return result;
+	}
+
+	//-----------------------copy the arguments from kernel buffer into user stack-----------
+	uargs = (char **) kmalloc(sizeof(char **) * argc);
+	if(uargs == NULL)	
+		return ENOMEM;	
+	//TODO padding
+	
+
+	//return to user mode using enter_new_process
+	/* Warp to user mode. */
+	enter_new_process(argc /*argc*/, (userptr_t) stackptr /*(void*)argsuserspace addr of argv*/,
+			  NULL /*userspace addr of environment*/,
+			  stackptr, entrypoint);
+	
+	/* enter_new_process does not return. */
+	panic("enter_new_process returned\n");
+	return EINVAL;
+}
 #endif
+
+

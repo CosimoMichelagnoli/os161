@@ -36,6 +36,7 @@
 #include "opt-fork.h"
 #include "opt-file.h"
 #include "opt-waitpid.h"
+#include "opt-execv.h"
 
 struct trapframe; /* from <machine/trapframe.h> */
 
@@ -77,6 +78,9 @@ int sys_waitpid(pid_t pid, userptr_t statusp, int options);
 pid_t sys_getpid(void);
 #if OPT_FORK
 int sys_fork(struct trapframe *ctf, pid_t *retval);
+#endif
+#if OPT_EXECV
+int sys_execv(char *progname, char **args);
 #endif
 
 #endif

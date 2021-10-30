@@ -106,11 +106,11 @@ runprogram(char *progname, unsigned long argc/*, char **args*/)
 	len = strlen(progname)+1;
 	stackoffset +=len;
 
-	for(i=0; i< argc; i++){	
+	for(i=0; i< (int) argc; i++){	
 
 		argvptr[i] = stackptr - stackoffset;
-		copyout(progname, (userptr_t) argvptr[0], len);
-	}
+		copyout(progname, (userptr_t) argvptr[i], len);
+	}progname
 	//argvptr[1] = 0;
 	stackoffset += sizeof(vaddr_t) * argc;
 	stackptr = stackptr - stackoffset - ((stackptr - stackoffset)%8);

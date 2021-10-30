@@ -40,6 +40,7 @@
 #include <opt-fork.h>
 #include <opt-file.h>
 #include <opt-syscalls.h>
+#include <opt-execv.h>
 
 /*
  * System call dispatcher.
@@ -162,12 +163,18 @@ syscall(struct trapframe *tf)
                 if (retval<0) err = ENOSYS; 
 		else err = 0;
                 break;
+#endif
 
 #if OPT_FORK
 	    case SYS_fork:
 	        err = sys_fork(tf,&retval);
                 break;
 #endif
+#if OPT_EXECV
+	     case SYS_execv:
+		err = sys_execv((char*)tf->tf_a0,
+				(char**)tf->tf_a1);
+		break;
 #endif
 #endif
 
