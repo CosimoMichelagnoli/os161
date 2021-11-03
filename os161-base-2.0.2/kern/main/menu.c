@@ -40,6 +40,7 @@
 #include <vfs.h>
 #include <sfs.h>
 #include <syscall.h>
+#include <current.h>
 #include <test.h>
 #include "opt-sfs.h"
 #include "opt-net.h"
@@ -74,6 +75,8 @@ cmd_progthread(void *ptr, unsigned long nargs)
 	char **args = ptr;
 	char progname[128];
 	int result;
+	struct thread *thread = curthread;
+	KASSERT(thread!=NULL);
 
 	KASSERT(nargs >= 1);
 

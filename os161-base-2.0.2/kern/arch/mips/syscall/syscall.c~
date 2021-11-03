@@ -40,6 +40,7 @@
 #include <opt-fork.h>
 #include <opt-file.h>
 #include <opt-syscalls.h>
+#include <opt-execv.h>
 
 /*
  * System call dispatcher.
@@ -172,7 +173,7 @@ syscall(struct trapframe *tf)
 #if OPT_EXECV
 	     case SYS_execv:
 		err = sys_execv((char*)tf->tf_a0,
-				(char**)tf->tf_a1);
+				(userptr_t)tf->tf_a1);
 		break;
 #endif
 #endif

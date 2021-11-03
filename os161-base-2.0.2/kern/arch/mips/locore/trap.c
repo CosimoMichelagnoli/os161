@@ -141,6 +141,8 @@ mips_trap(struct trapframe *tf)
 	iskern = (tf->tf_status & CST_KUp) == 0;
 
 	KASSERT(code < NTRAPCODES);
+	struct thread *thread = curthread;
+	KASSERT(thread != NULL);
 
 	/* Make sure we haven't run off our stack */
 	if (curthread != NULL && curthread->t_stack != NULL) {

@@ -173,7 +173,7 @@ syscall(struct trapframe *tf)
 #if OPT_EXECV
 	     case SYS_execv:
 		err = sys_execv((char*)tf->tf_a0,
-				(char**)tf->tf_a1);
+				(char **)tf->tf_a1);
 		break;
 #endif
 #endif

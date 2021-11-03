@@ -141,13 +141,15 @@ mips_trap(struct trapframe *tf)
 	iskern = (tf->tf_status & CST_KUp) == 0;
 
 	KASSERT(code < NTRAPCODES);
+	struct thread *thread = curthread;
+	KASSERT(thread != NULL);
 
 	/* Make sure we haven't run off our stack */
-	if (curthread != NULL && curthread->t_stack != NULL) {
+	/*if (curthread != NULL && curthread->t_stack != NULL) {
 		KASSERT((vaddr_t)tf > (vaddr_t)curthread->t_stack);
 		KASSERT((vaddr_t)tf < (vaddr_t)(curthread->t_stack
 						+ STACK_SIZE));
-	}
+	}*/
 
 	/* Interrupt? Call the interrupt handler and return. */
 	if (code == EX_IRQ) {
@@ -395,7 +397,7 @@ mips_usermode(struct trapframe *tf)
 	 * either another thread's stack or in the kernel heap.
 	 * (Exercise: why?)
 	 */
-	//KASSERT(SAME_STACK(cpustacks[curcpu->c_number]-1, (vaddr_t)tf));
+	KASSERT(SAME_STACK(cpustacks[curcpu->c_number]-1, (vaddr_t)tf));
 
 	/*
 	 * This actually does it. See exception-*.S.

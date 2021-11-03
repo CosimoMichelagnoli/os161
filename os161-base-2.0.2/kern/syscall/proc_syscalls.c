@@ -22,7 +22,7 @@
 #include <current.h>
 #include <synch.h>
 #include <test.h>
-#include <copyinout.h>
+
 
 /*
  * system calls for process management
@@ -93,7 +93,8 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
   int result;
   pid_t	pid;
   struct proc *debug =curproc;
-  KASSERT(curproc != NULL);
+  struct thread *thread = curthread;
+  KASSERT(curproc != NULL&&thread !=NULL);
   KASSERT(debug != NULL);
 
   newp = proc_create_runprogram(curproc->p_name);
@@ -147,18 +148,29 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
 int
 sys_execv(char *progname, char **args){
 	//TODO check to free all the memory in case of error
+	
 	int i = 0;
-	int result, argc;
-	char **kargs[ARG_MAX];
+	int result, argc, arglen;
+	char **kargs;
 	char **uargs;
 	char *kprogname;
 	struct vnode *v;
 	struct addrspace *as;
 	vaddr_t entrypoint, stackptr;
+	userptr_t userArgs;
 	KASSERT(args !=NULL);
+	size_t wasteOfSpace;
+	
 	//--------------------copy arguments from user space into kernel------------------------- 
 	
-
+	for(i=0;args[i]!=NULL;i++);
+	KASSERT(args[i] == NULL);
+	if(i >= ARG_MAX)
+		return E2BIG;
+	kargs = (char **) kmalloc(sizeof(char **) *i);
+	if(kargs==NULL)
+		return ENOMEM;
+	i=0;
 	while(args[i] != NULL){
 
 		kargs[i] = kmalloc(strlen(args[i])+1);
@@ -166,7 +178,7 @@ sys_execv(char *progname, char **args){
 			return ENOMEM;	
 		
 
-		result = copyin((userptr_t)args[i], kargs[i], strlen(args[i])+1);
+		result = copyinstr((userptr_t)args[i], kargs[i], strlen(args[i])+1,&wasteOfSpace);
 		if(result){
 			//kfree_all(kargs);
 			kfree(kargs);
@@ -181,7 +193,7 @@ sys_execv(char *progname, char **args){
 	kprogname = (char *) kmalloc(strlen(progname)+1);
 	if(kprogname == NULL)	
 		return ENOMEM;
-	result = copyin((userptr_t)progname, kprogname, strlen(progname)+1);
+	result = copyinstr((userptr_t)progname, kprogname, strlen(progname)+1, &wasteOfSpace);
 	if(result){
 		//kfree_all(kargs);
 		kfree(kargs);
@@ -193,14 +205,9 @@ sys_execv(char *progname, char **args){
 
 	//-----------open the executable, create a new address space and load the elf into it--------
 	
-	/* Open the file. */
-	result = vfs_open(progname, O_RDONLY, 0, &v);
-	if (result) {
-		return result;
-	}
 
 	/* We should be a new process. */
-	KASSERT(proc_getas() == NULL);
+	//KASSERT(proc_getas() == NULL);
 	
 	/* Create a new address space. */
 	as = as_create();
@@ -209,6 +216,11 @@ sys_execv(char *progname, char **args){
 		return ENOMEM;
 	}
 
+	/* Open the file. */
+	result = vfs_open(kprogname, O_RDONLY, 0, &v);
+	if (result) {
+		return result;
+	}
 	/* Switch to it and activate it. */
 	proc_setas(as);
 	as_activate();
@@ -233,13 +245,54 @@ sys_execv(char *progname, char **args){
 	//-----------------------copy the arguments from kernel buffer into user stack-----------
 	uargs = (char **) kmalloc(sizeof(char **) * argc);
 	if(uargs == NULL)	
-		return ENOMEM;	
+		return ENOMEM;
+	uargs[argc] = NULL;
+
+	for ( i=0; i<argc; ++i){
+
+	arglen = strlen(kargs[i])+1;
+	uargs[i] =kmalloc(arglen);
+
 	//TODO padding
+	stackptr -= arglen;
+	if(stackptr & 0x3)
+		stackptr -= (stackptr & 0x3); //padding
+	
+	uargs[i] = (char *)stackptr; //saving the addresso of the stackptr for each element
+
+
+	result = copyoutstr(kargs[i], (userptr_t)stackptr , arglen, &wasteOfSpace); //copy into the user stack the first elemente of kernel args 
+	
+	if(result){
+		//kfree_all(kargs);
+		kfree(kargs);
+		return result;
+		}
+	}
+	for ( i=0; i<argc; ++i){
+	stackptr -= sizeof(char *); //move the stack pointer for an address
+	
+	result = copyout(uargs[argc-(++i)], (userptr_t)stackptr , arglen); // 
+	
+	if(result){
+		//kfree_all(kargs);
+		kfree(kargs);
+		return result;
+	}
+
+	}
+	userArgs = (userptr_t)stackptr-4;
+	if(stackptr % 8==0) stackptr -=8;
+	else stackptr-=4;
+
+		
+	
 	
 
 	//return to user mode using enter_new_process
 	/* Warp to user mode. */
-	enter_new_process(argc /*argc*/, (userptr_t) stackptr /*(void*)argsuserspace addr of argv*/,
+	
+	enter_new_process(argc /*argc*/, userArgs /*(void*)argsuserspace addr of argv*/,
 			  NULL /*userspace addr of environment*/,
 			  stackptr, entrypoint);
 	
