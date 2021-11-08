@@ -63,8 +63,8 @@ runprogram(char *progname, unsigned long argc/*, char **args*/)
 	int result/*, i*/;
 	/*size_t len;
 	size_t stackoffset = 0;
-	vaddr_t argvptr[argc];
-	//userptr_t argv = ptr;*/
+	vaddr_t argvptr[argc];*/
+	//userptr_t argv = ptr;
 
 	/* Open the file. */
 	result = vfs_open(progname, O_RDONLY, 0, &v);
@@ -118,9 +118,10 @@ runprogram(char *progname, unsigned long argc/*, char **args*/)
 	stackptr = stackptr - stackoffset - ((stackptr - stackoffset)%8);
 	copyout (argvptr, (userptr_t) stackptr, sizeof(vaddr_t) * argc);
 	*/
+	
 
 	/* Warp to user mode. */
-	enter_new_process(argc /*argc*/, NULL/*(userptr_t) stackptr (void*)argsuserspace addr of argv*/,
+	enter_new_process(argc /*argc*/, NULL/* (userptr_t) stackptr(void*)argsuserspace addr of argv*/,
 			  NULL /*userspace addr of environment*/,
 			  stackptr, entrypoint);
 	

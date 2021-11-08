@@ -148,7 +148,6 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
 int
 sys_execv(char *progname, char **args){
 	//TODO check to free all the memory in case of error
-	
 	int i = 0;
 	int result, argc, arglen;
 	char **kargs;
@@ -157,13 +156,14 @@ sys_execv(char *progname, char **args){
 	struct vnode *v;
 	struct addrspace *as;
 	vaddr_t entrypoint, stackptr;
-	userptr_t userArgs;
+	//userptr_t userArgs;
 	KASSERT(args !=NULL);
 	size_t wasteOfSpace;
 	
 	//--------------------copy arguments from user space into kernel------------------------- 
 	
 	for(i=0;args[i]!=NULL;i++);
+	kprintf("start  %d\n", i);
 	KASSERT(args[i] == NULL);
 	if(i >= ARG_MAX)
 		return E2BIG;
@@ -207,20 +207,22 @@ sys_execv(char *progname, char **args){
 	
 
 	/* We should be a new process. */
-	//KASSERT(proc_getas() == NULL);
-	
-	/* Create a new address space. */
-	as = as_create();
-	if (as == NULL) {
-		vfs_close(v);
-		return ENOMEM;
-	}
-
 	/* Open the file. */
 	result = vfs_open(kprogname, O_RDONLY, 0, &v);
 	if (result) {
 		return result;
 	}
+	proc_setas(NULL);
+	KASSERT(proc_getas() == NULL);
+	//KASSERT(curthread->t_addrspace == NULL);
+	
+	/* Create a new address space. */
+	as = as_create();
+	if (as == NULL) {		
+		vfs_close(v);
+		return ENOMEM;
+	}
+
 	/* Switch to it and activate it. */
 	proc_setas(as);
 	as_activate();
@@ -250,40 +252,44 @@ sys_execv(char *progname, char **args){
 
 	for ( i=0; i<argc; ++i){
 
-	arglen = strlen(kargs[i])+1;
-	uargs[i] =kmalloc(arglen);
+		arglen = strlen(kargs[i])+1;
+		uargs[i] =kmalloc(sizeof(char*));
 
-	//TODO padding
-	stackptr -= arglen;
-	if(stackptr & 0x3)
-		stackptr -= (stackptr & 0x3); //padding
+		//TODO padding
+		stackptr -= arglen;
+		if(stackptr & 0x3)
+			stackptr -= (stackptr & 0x3); //padding
 	
-	uargs[i] = (char *)stackptr; //saving the addresso of the stackptr for each element
+		uargs[i] = (char *)stackptr; //saving the addresso of the stackptr for each element
 
 
-	result = copyoutstr(kargs[i], (userptr_t)stackptr , arglen, &wasteOfSpace); //copy into the user stack the first elemente of kernel args 
+		result = copyoutstr(kargs[i], (userptr_t)stackptr , arglen, &wasteOfSpace); //copy into the user stack the first elemente of kernel args 
 	
-	if(result){
-		//kfree_all(kargs);
-		kfree(kargs);
-		return result;
-		}
+		if(result){
+			//kfree_all(kargs);
+			kfree(kargs);
+			return result;
+			}
 	}
+
+	//userArgs = (userptr_t)stackptr;
+
+	kprintf("here %d\n",argc);
 	for ( i=0; i<argc; ++i){
-	stackptr -= sizeof(char *); //move the stack pointer for an address
+		stackptr -= sizeof(char *); //move the stack pointer for an address
+		kprintf("maremma %d, argc:%d\n",i,argc);
+		result = copyout(uargs[argc-(i+1)], (userptr_t)stackptr , sizeof(char *)); // 
 	
-	result = copyout(uargs[argc-(++i)], (userptr_t)stackptr , arglen); // 
-	
-	if(result){
-		//kfree_all(kargs);
-		kfree(kargs);
-		return result;
-	}
+		if(result){
+			kprintf("maiala\n");
+			//kfree_all(kargs);
+			kfree(kargs);
+			return result;
+		}
 
 	}
-	userArgs = (userptr_t)stackptr+3;
-	if(stackptr % 8==0) stackptr -=7;
-	else stackptr-=3;
+	
+	
 
 		
 	
@@ -291,8 +297,7 @@ sys_execv(char *progname, char **args){
 
 	//return to user mode using enter_new_process
 	/* Warp to user mode. */
-	
-	enter_new_process(argc /*argc*/, userArgs /*(void*)argsuserspace addr of argv*/,
+	enter_new_process(argc /*argc*/, (userptr_t)stackptr /*(void*)argsuserspace addr of argv*/,
 			  NULL /*userspace addr of environment*/,
 			  stackptr, entrypoint);
 	

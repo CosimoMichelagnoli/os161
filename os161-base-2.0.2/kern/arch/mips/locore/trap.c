@@ -426,6 +426,7 @@ enter_new_process(int argc, userptr_t argv, userptr_t env,
 		  vaddr_t stack, vaddr_t entry)
 {
 	struct trapframe tf;
+	kprintf("here is good\n");
 
 	bzero(&tf, sizeof(tf));
 
