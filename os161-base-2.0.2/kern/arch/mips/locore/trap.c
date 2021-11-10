@@ -111,6 +111,10 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 	/*
 	 * You will probably want to change this.
 	 */
+	
+	sys__exit(-1);
+
+
 
 	kprintf("Fatal user mode trap %u sig %d (%s, epc 0x%x, vaddr 0x%x)\n",
 		code, sig, trapcodenames[code], epc, vaddr);
@@ -426,7 +430,7 @@ enter_new_process(int argc, userptr_t argv, userptr_t env,
 		  vaddr_t stack, vaddr_t entry)
 {
 	struct trapframe tf;
-	kprintf("here is good\n");
+	//kprintf("here is good\n");
 
 	bzero(&tf, sizeof(tf));
 

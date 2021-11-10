@@ -277,8 +277,8 @@ sys_execv(char *progname, char **args){
 	kprintf("here %d\n",argc);
 	for ( i=0; i<argc; ++i){
 		stackptr -= sizeof(char *); //move the stack pointer for an address
-		kprintf("maremma %d, argc:%d\n",i,argc);
 		result = copyout(uargs[argc-(i+1)], (userptr_t)stackptr , sizeof(char *)); // 
+		kprintf("maremma %d, argc:%d\n",i,argc);
 	
 		if(result){
 			kprintf("maiala\n");
