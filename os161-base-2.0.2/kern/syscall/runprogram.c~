@@ -60,7 +60,7 @@ runprogram(char *progname, unsigned long argc/*, char **args*/)
 	vaddr_t entrypoint, stackptr;
 	struct thread *thread = curthread;
 	KASSERT(thread!=NULL);
-	int result, i;
+	int result/*, i*/;
 	size_t len;
 	size_t stackoffset = 0;
 	vaddr_t argvptr[argc];
@@ -105,24 +105,31 @@ runprogram(char *progname, unsigned long argc/*, char **args*/)
 	}
 
 	//additional code to move the prog name to user space
-	len = strlen(progname)+1;
-	stackoffset +=len;
+	if(argc == 1){
+		len = strlen(progname)+1;
+		stackoffset +=len;
 
-	for(i=0; i< (int) argc; i++){	
+		for(i=0; i< (int) argc; i++){	
 
-		argvptr[i] = stackptr - stackoffset;
-		copyout(progname, (userptr_t) argvptr[i], len);
-	}
-	//argvptr[1] = 0;
-	stackoffset += sizeof(vaddr_t) * argc;
-	stackptr = stackptr - stackoffset - ((stackptr - stackoffset)%8);
-	copyout (argvptr, (userptr_t) stackptr, sizeof(vaddr_t) * argc);
+			argvptr[i] = stackptr - stackoffset;
+			copyout(progname, (userptr_t) argvptr[i], len);
+		}
+		//argvptr[1] = 0;
+		stackoffset += sizeof(vaddr_t) * argc;
+		stackptr = stackptr - stackoffset - ((stackptr - stackoffset)%8);
+		copyout (argvptr, (userptr_t) stackptr, sizeof(vaddr_t) * argc);
+		/* Warp to user mode. */
+		enter_new_process(argc /*argc*/, (userptr_t) stackptr/*NULL (void*)argsuserspace addr of argv*/,
+				  NULL /*userspace addr of environment*/,
+				  stackptr, entrypoint);
 	
+	}else{
 
-	/* Warp to user mode. */
-	enter_new_process(argc /*argc*/, (userptr_t) stackptr/*NULL (void*)argsuserspace addr of argv*/,
-			  NULL /*userspace addr of environment*/,
-			  stackptr, entrypoint);
+		/* Warp to user mode. */
+		enter_new_process(argc /*argc*/, NULL/* (userptr_t) stackptr(void*)argsuserspace addr of argv*/,
+				  NULL /*userspace addr of environment*/,
+				  stackptr, entrypoint);
+	}
 	
 
 	/* enter_new_process does not return. */
