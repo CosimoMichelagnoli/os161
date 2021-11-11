@@ -53,7 +53,7 @@
  * Calls vfs_open on progname and thus may destroy it.
  */
 int
-runprogram(char *progname, unsigned long argc/*, char **args*/)
+runprogram(char *progname, unsigned long argc, char **args)
 {
 	struct addrspace *as;
 	struct vnode *v;
@@ -63,7 +63,8 @@ runprogram(char *progname, unsigned long argc/*, char **args*/)
 	int result, i;
 	size_t len;
 	size_t stackoffset = 0;
-	vaddr_t argvptr[argc];
+	char **argvptr;
+	vaddr_t uprogname[1];
 	//userptr_t argv = ptr;
 
 	/* Open the file. */
@@ -105,28 +106,54 @@ runprogram(char *progname, unsigned long argc/*, char **args*/)
 	}
 
 	//additional code to move the prog name to user space
-	if(argc == 1){
-		len = strlen(progname)+1;
-		stackoffset +=len;
-
+	if(args != NULL){
+		argvptr  = (char **) kmalloc(sizeof(char **) * argc);
+		if(argvptr == NULL)	
+			return ENOMEM;
+		argvptr[argc] = NULL;
+		
 		for(i=0; i< (int) argc; i++){	
 
-			argvptr[i] = stackptr - stackoffset;
-			copyout(progname, (userptr_t) argvptr[i], len);
+			argvptr[i] =kmalloc(sizeof(char*));
+			if(argvptr[i] == NULL)	
+				return ENOMEM;
+
+			len = strlen(args[i])+1;
+			while(len % 4 != 0)
+				len++;
+			stackptr = stackptr - len;
+			copyoutstr(args[i], (userptr_t) stackptr, len,NULL);
+			argvptr[i] = (char *) stackptr;
 		}
-		//argvptr[1] = 0;
-		stackoffset += sizeof(vaddr_t) * argc;
-		stackptr = stackptr - stackoffset - ((stackptr - stackoffset)%8);
-		copyout (argvptr, (userptr_t) stackptr, sizeof(vaddr_t) * argc);
+		argvptr[argc] = 0;
+		stackoffset += sizeof(char *)*(argc+1);
+		stackptr = stackptr - stackoffset /*- ((stackptr-stackoffset)%8)*/;
+		result = copyout (argvptr, (userptr_t) stackptr, sizeof(char *)*(argc));
+		if(result){
+			//kprintf("maiala\n");
+			//kfree_all(kargs);
+			kfree(argvptr);
+			return result;
+		}		
+		
 		/* Warp to user mode. */
+
 		enter_new_process(argc /*argc*/, (userptr_t) stackptr/*NULL (void*)argsuserspace addr of argv*/,
 				  NULL /*userspace addr of environment*/,
 				  stackptr, entrypoint);
 	
 	}else{
+				
+		len = strlen(progname)+1;	
+		uprogname[0] = stackptr - len;
+		copyoutstr(progname, (userptr_t) uprogname[0], len, NULL);
+
+		len += sizeof(vaddr_t);
+		stackptr = stackptr - len - ((stackptr - len)%8);
+		copyout(uprogname, (userptr_t) stackptr, sizeof(vaddr_t));		
 
 		/* Warp to user mode. */
-		enter_new_process(argc /*argc*/, NULL/* (userptr_t) stackptr(void*)argsuserspace addr of argv*/,
+		enter_new_process(1 /*argc*/, (userptr_t) stackptr/*userspace addr of argv*/,
 				  NULL /*userspace addr of environment*/,
 				  stackptr, entrypoint);
 	}

@@ -163,7 +163,6 @@ sys_execv(char *progname, char **args){
 	//--------------------copy arguments from user space into kernel------------------------- 
 	
 	for(i=0;args[i]!=NULL;i++);
-	//kprintf("start  %d\n", i);
 	KASSERT(args[i] == NULL);
 	if(i >= ARG_MAX)
 		return E2BIG;
@@ -274,11 +273,11 @@ sys_execv(char *progname, char **args){
 
 	//userArgs = (userptr_t)stackptr;
 
-	//kprintf("here %d\n",argc);
+	
 	for ( i=0; i<argc; ++i){
 		stackptr -= sizeof(char *); //move the stack pointer for an address
 		result = copyout(uargs[argc-(i+1)], (userptr_t)stackptr , sizeof(char *)); // 
-		//kprintf("maremma %d, argc:%d\n",i,argc);
+		
 	
 		if(result){
 			//kprintf("maiala\n");
