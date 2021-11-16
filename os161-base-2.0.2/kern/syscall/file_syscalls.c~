@@ -11,6 +11,7 @@
 #include <syscall.h>
 #include <current.h>
 #include <lib.h>
+#include <opt-file.h>
 
 #if OPT_FILE
 
@@ -287,4 +288,44 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
   }
 
   return (int)size;
+}
+
+
+int 
+sys_dup2(int oldfd, int newfd)
+{
+#if OPT_FILE
+	struct proc *p=NULL;
+	struct openfile *fold,*fnew;
+
+	KASSERT( curthread!=NULL);
+	KASSERT( curthread->t_proc!=NULL);
+
+	p=curthread->t_proc;
+
+	if( (oldfd<0 || newfd<0 || oldfd>OPEN_MAX || newfd>OPEN_MAX))
+		return EBADF;
+
+	fold=p->fileTable[oldfd];
+	fnew=p->fileTable[newfd];
+	if(fnew!=NULL)
+	{
+		sys_close(newfd);
+	}
+	fnew=fold;
+
+
+	p->fileTable[newfd]=fnew;
+
+	fold->countRef++;
+	VOP_INCREF(fold->vn);
+
+	*retval=newfd;
+#else
+    kprintf("sys_dup2 not supported\n");
+    return -1;
+
+#endif
+
+
 }
