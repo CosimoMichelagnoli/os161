@@ -130,6 +130,13 @@ syscall(struct trapframe *tf)
 		retval=sys_dup2((int)tf->tf_a0,(int)tf->tf_a1);
 		if(retval<0) err=retval;
 		break;
+	    case SYS_chdir:
+		retval=sys_chdir((userptr_t)tf->tf_a0);
+		if(retval<0) err=retval;
+		break;
+	    case SYS___getcwd:
+		err=sys___getcwd((userptr_t)tf->tf_a0,(size_t)tf->tf_a1,&retval);
+		break;  
             case SYS_remove:
 	      /* just ignore: do nothing */
 	        retval = 0;

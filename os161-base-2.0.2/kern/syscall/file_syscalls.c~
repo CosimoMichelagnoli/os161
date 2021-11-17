@@ -27,6 +27,8 @@
 
 #define USE_KERNEL_BUFFER 0
 
+#define MAX_DIR_LEN 128
+
 /* system open file table */
 struct openfile {
   struct vnode *vn;
@@ -320,12 +322,67 @@ sys_dup2(int oldfd, int newfd)
 	fold->countRef++;
 	VOP_INCREF(fold->vn);
 
-	*retval=newfd;
+	return newfd;
 #else
     kprintf("sys_dup2 not supported\n");
     return -1;
 
 #endif
 
+}
+
+int
+sys_chdir(userptr_t path){
+#if OPT_FILE
+	char kbuf[MAX_DIR_LEN];
+	int err;
+
+	KASSERT(curthread!=NULL);
+	KASSERT(curthread->t_proc!=NULL);
+
+	err=copyinstr(path,kbuf,strlen(path)*sizeof(char),NULL)
+	if(err)
+		return err;
+
+	err=vfs_chdir(kbuf);
+	if(err)
+		return err;
+
+	return 0;
+#else
+	kprintf("sys_chdir not supported\n");
+	return -1;
+
+#endif
+
+}
+
+int
+sys___getcwd(userptr_t buf,size_t len,int *retval){
+#if OPT_FILE
+	struct uio ruio;
+	struct iovec iov;
+	int err;
+
+	KASSERT(curthread!=NULL);
+	KASSERT(curthread->t_proc!=NULL);
+
+	uio_kinit(&iov,&ruio,buf,len,0,UIO_READ);
+
+	//the given pointer lives in userspace
+	ruio.uio_space=curthread->t_proc->p_addrspace;
+	ruio.uio_segflg=UIO_USERSPACE;
+
+	err=vfs_getcwd(&ruio);
+	if(err)
+		return err;
+
+	*retval=len-ruio.uio_resid;
+	return 0;
+
+#else
+	kprintf("sys___getcwd not supported\n");
+	return -1;
+#endif
 
 }
