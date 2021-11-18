@@ -112,7 +112,7 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 	 * You will probably want to change this.
 	 */
 	
-	sys__exit(-1);
+	sys__exit(0);
 
 
 

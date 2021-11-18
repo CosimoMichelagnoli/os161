@@ -73,9 +73,10 @@ int sys_close(int fd);
 int sys_dup2(int oldfd,int newfd);
 int sys_chdir(userptr_t path);
 int sys___getcwd(userptr_t buf,size_t len,int *retval);
-#endif
 int sys_write(int fd, userptr_t buf_ptr, size_t size);
 int sys_read(int fd, userptr_t buf_ptr, size_t size);
+int sys_lseek(int fd, off_t offset, int whence);
+#endif
 void sys__exit(int status);
 int sys_waitpid(pid_t pid, userptr_t statusp, int options);
 pid_t sys_getpid(void);

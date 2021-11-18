@@ -21,6 +21,9 @@
 #include <limits.h>
 #include <uio.h>
 #include <proc.h>
+//#include <kern/stdio.h>
+#include <kern/seek.h>
+#include <kern/stat.h>
 
 /* max num of system wide open files */
 #define SYSTEM_OPEN_MAX (10*OPEN_MAX)
@@ -194,8 +197,14 @@ sys_open(userptr_t path, int openflags, mode_t mode, int *errp)
     if (systemFileTable[i].vn==NULL) {
       of = &systemFileTable[i];
       of->vn = v;
-      of->offset = 0; // TODO: handle offset with append
       of->countRef = 1;
+      /*if(openflags & O_APPEND){
+	   struct stat *file_stat;
+	   VOP_STAT(vn, file_stat);
+	   of->offset = file_stat->st_size;
+	}
+	else*/ 
+      of->offset = 0; // TODO: handle offset with append
       break;
     }
   }
@@ -340,7 +349,7 @@ sys_chdir(userptr_t path){
 	KASSERT(curthread!=NULL);
 	KASSERT(curthread->t_proc!=NULL);
 
-	err=copyinstr(path,kbuf,strlen(path)*sizeof(char),NULL)
+	err=copyinstr(path,kbuf,strlen((char*)path)*sizeof(char),NULL);
 	if(err)
 		return err;
 
@@ -385,4 +394,46 @@ sys___getcwd(userptr_t buf,size_t len,int *retval){
 	return -1;
 #endif
 
+}
+
+int
+sys_lseek(int fd, off_t offset, int whence){
+#if OPT_FILE
+	/*if whence is:
+	SEEK_SET -> the new position is offset
+	SEEK_CUR -> the new position is current + offset
+	SEEK_END -> the new position is end-of-file + offset
+	else FAIL*/
+	/*struct vnode *vn;
+	int err;*/
+	struct openfile *of = NULL;
+	off_t newoffset;
+	
+	//fd is not a valid file handle
+	if (fd<0||fd>OPEN_MAX) return EBADF;
+  	of = curproc->fileTable[fd];
+  	if ((of==NULL) || (of->countRef == 0)) return EBADF;
+
+	if(whence == SEEK_SET){
+		newoffset = offset;
+	} else if(whence == SEEK_CUR){
+			newoffset = of->offset + offset;
+	} else if(whence == SEEK_END){
+			struct stat *file_stat = kmalloc(sizeof(struct stat));
+			VOP_STAT(of->vn, file_stat);
+			newoffset = file_stat->st_size + offset;
+	} else{
+		return EINVAL;
+	}
+	if ((newoffset < 0) /*|| (newoffset > EOF)*/) return EINVAL;
+
+	/*vn = of->vn;
+	err = VOP_TRYSEEK(vn, newoffset);
+	if (err) return err;*/
+	
+	*of->offset = newoffset;
+
+	return 0;
+
+#endif
 }
