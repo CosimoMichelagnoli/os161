@@ -35,6 +35,7 @@
 #include <current.h>
 #include <addrspace.h>
 #include <syscall.h>
+#include <copyinout.h>
 
 #include <opt-waitpid.h>
 #include <opt-fork.h>
@@ -85,7 +86,9 @@ syscall(struct trapframe *tf)
 {
 	int callno;
 	int32_t retval;
+	off_t retval64;
 	int err=0;
+	bool handle64;
 
 	KASSERT(curthread != NULL);
 	KASSERT(curthread->t_curspl == 0);
@@ -103,6 +106,7 @@ syscall(struct trapframe *tf)
 	 */
 
 	retval = 0;
+	handle64 = false;
 
 	switch (callno) {
 	    case SYS_reboot:
@@ -156,11 +160,19 @@ syscall(struct trapframe *tf)
                 if (retval<0) err = ENOSYS; 
 		else err = 0;
                 break;
-	    case SYS_lseek:
-		err = sys_lseek(tf->tf_a0, tf->tf_a1, tf->tf_a2);
+	    case SYS_lseek: 
+		{
+		off_t offset;    //should be in a2:a3
+		int whence;    //should be in sp+16
+		//join32to64(tf->tf_a2, tf->tf_a3, &offset);
+		offset = (((off_t)tf->tf_a2 << 32) | tf->tf_a3);
+		err = copyin((const userptr_t)tf->tf_sp + 16, &whence, sizeof(int));
+		if(err) break;
+		err = sys_lseek(tf->tf_a0, offset, whence, &retval64);
 				//int fd  off_t pos  int whence 
-		break;
-#endif
+		handle64 = true;
+		break;}
+#endif		
 	    case SYS__exit:
 	        /* TODO: just avoid crash   */
  	        sys__exit((int)tf->tf_a0);
@@ -208,6 +220,12 @@ syscall(struct trapframe *tf)
 		 */
 		tf->tf_v0 = err;
 		tf->tf_a3 = 1;      /* signal an error */
+	}
+	else if(handle64){
+		/* Success. */
+		tf->tf_v0 = (int32_t)((retval64 & 0xFFFFFFFF00000000)>>32);
+		tf->tf_v1 = (int32_t)((retval64 & 0xFFFFFFFF)>>32);
+		tf->tf_a3 = 0;      /* signal no error */
 	}
 	else {
 		/* Success. */

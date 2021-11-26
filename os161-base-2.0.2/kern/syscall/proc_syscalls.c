@@ -17,6 +17,7 @@
 #include <thread.h>
 #include <addrspace.h>
 //#include <vm.h>
+#include <limits.h>
 #include <vfs.h>
 #include <mips/trapframe.h>
 #include <current.h>
@@ -30,11 +31,15 @@
 void
 sys__exit(int status)
 {
+  KASSERT(curproc != NULL);
 #if OPT_WAITPID
   struct proc *p = curproc;
+  spinlock_acquire(&p->p_lock);
   p->p_status = status & 0xff; /* just lower 8 bits returned */
+  spinlock_release(&p->p_lock);
   proc_remthread(curthread);
   proc_signal_end(p);
+
 #else
   /* get address space of current process and destroy */
   struct addrspace *as = proc_getas();
@@ -43,12 +48,19 @@ sys__exit(int status)
   thread_exit();
 
   panic("thread_exit returned (should not happen)\n");
-  (void) status; // TODO: status handling
+  (void) status; 
 }
 
 int
 sys_waitpid(pid_t pid, userptr_t statusp, int options)
 {
+  if(((uintptr_t)statusp % 4) != 0) return EFAULT;
+
+  if(statusp == NULL) return EFAULT;
+
+  if(pid < 0 || pid >= PID_MAX) return ESRCH;
+
+  if(options != 0 && options != 1 && options != 2) return EINVAL;
 #if OPT_WAITPID
   struct proc *p = proc_search_pid(pid);
   int s;

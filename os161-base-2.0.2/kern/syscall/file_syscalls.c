@@ -12,6 +12,7 @@
 #include <current.h>
 #include <lib.h>
 #include <opt-file.h>
+#include <synch.h>
 
 #if OPT_FILE
 
@@ -22,6 +23,7 @@
 #include <uio.h>
 #include <proc.h>
 //#include <kern/stdio.h>
+#include <kern/fcntl.h>
 #include <kern/seek.h>
 #include <kern/stat.h>
 
@@ -36,7 +38,9 @@
 struct openfile {
   struct vnode *vn;
   off_t offset;	
+  int accmode;
   unsigned int countRef;
+  struct lock *lk;
 };
 
 struct openfile systemFileTable[SYSTEM_OPEN_MAX];
@@ -179,52 +183,96 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
 /*
  * file system calls for open/close
  */
+bool
+valid_flags(int flags){
+	int count = 0;
+
+	if((flags & O_RDONLY) == O_RDONLY) count++;
+
+	if((flags & O_WRONLY) == O_WRONLY) count++;
+
+	if((flags & O_RDWR) == O_RDWR) count ++;
+
+	return count == 1;
+}
+
 int
 sys_open(userptr_t path, int openflags, mode_t mode, int *errp)
 {
   int fd, i;
+  char kbuf[NAME_MAX];
   struct vnode *v;
   struct openfile *of=NULL;; 	
   int result;
+  size_t actual;
 
-  result = vfs_open((char *)path, openflags, mode, &v);
-  if (result) {
-    *errp = ENOENT;
-    return -1;
-  }
-  /* search system open file table */
-  for (i=0; i<SYSTEM_OPEN_MAX; i++) {
-    if (systemFileTable[i].vn==NULL) {
-      of = &systemFileTable[i];
-      of->vn = v;
-      of->countRef = 1;
-      /*if(openflags & O_APPEND){
-	   struct stat *file_stat;
-	   VOP_STAT(vn, file_stat);
-	   of->offset = file_stat->st_size;
-	}
-	else*/ 
-      of->offset = 0; // TODO: handle offset with append
-      break;
-    }
-  }
-  if (of==NULL) { 
-    // no free slot in system open file table
-    *errp = ENFILE;
-  }
-  else {
-    for (fd=STDERR_FILENO+1; fd<OPEN_MAX; fd++) {
-      if (curproc->fileTable[fd] == NULL) {
-	curproc->fileTable[fd] = of;
-	return fd;
-      }
-    }
-    // no free slot in process open file table
-    *errp = EMFILE;
+  if(path == NULL){
+	*errp = EFAULT;
+	return -1;
   }
   
-  vfs_close(v);
-  return -1;
+  if(valid_flags(openflags)){//too bee fixed
+	   
+	  /* search system open file table */
+  	  for (i=0; i<SYSTEM_OPEN_MAX; i++) 
+	    if (systemFileTable[i].vn==NULL) break;
+
+	  if(i >= SYSTEM_OPEN_MAX){
+		*errp = ENFILE;
+		return -1;
+	  } 
+
+          if((result = copyinstr(path, kbuf, NAME_MAX, &actual)) != 0) return -1;
+		  
+
+	  result = vfs_open(kbuf, openflags, mode, &v);
+	  if (result) {
+	    *errp = ENOENT;
+	    return -1;
+	  }
+	   
+	  of = &systemFileTable[i]; // kmalloc(sizeof(struct openfile));
+
+	  if (of==NULL) { 
+		    // no free slot in system open file table
+		    *errp = ENFILE;
+	  }
+	  else {
+		  of->lk = lock_create("file lock");
+		  if(of->lk == NULL){
+		  	vfs_close(v);
+			*errp = ENOMEM;
+			kfree(of);
+			return -1;		  
+		  }
+		  of->vn = v;
+		  of->countRef = 1;
+		  of->offset = 0;
+		  of->accmode = openflags & O_ACCMODE;
+
+		  if((openflags & O_APPEND) == O_APPEND){
+			   struct stat file_stat;
+			   VOP_STAT(of->vn, &file_stat);
+			   of->offset = file_stat.st_size;
+		  }		      
+		  
+		  for (fd=STDERR_FILENO+1; fd<OPEN_MAX; fd++) {
+		      if (curproc->fileTable[fd] == NULL) {
+				curproc->fileTable[fd] = of;
+				return fd;
+		      }
+		    }
+		    // no free slot in process open file table
+		    *errp = EMFILE;
+	  }
+	  
+	  vfs_close(v);
+	  return -1;
+  }
+  else {
+	*errp = EINVAL;
+	return -1;
+  }
 }
 
 /*
@@ -397,7 +445,7 @@ sys___getcwd(userptr_t buf,size_t len,int *retval){
 }
 
 int
-sys_lseek(int fd, off_t offset, int whence){
+sys_lseek(int fd, off_t offset, int whence, off_t *retval){
 #if OPT_FILE
 	/*if whence is:
 	SEEK_SET -> the new position is offset
@@ -425,13 +473,15 @@ sys_lseek(int fd, off_t offset, int whence){
 	} else{
 		return EINVAL;
 	}
-	if ((newoffset < 0) /*|| (newoffset > EOF)*/) return EINVAL;
+	if (newoffset < 0) /*|| (newoffset > EOF)*/ return EINVAL;
+
 
 	/*vn = of->vn;
 	err = VOP_TRYSEEK(vn, newoffset);
 	if (err) return err;*/
 	
 	of->offset = newoffset;
+	*retval = newoffset;
 
 	return 0;
 

@@ -68,6 +68,7 @@ int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
 #if OPT_FILE
 struct openfile;
 void openfileIncrRefCount(struct openfile *of);
+bool valid_flags(int flags);
 int sys_open(userptr_t path, int openflags, mode_t mode, int *errp);
 int sys_close(int fd);
 int sys_dup2(int oldfd,int newfd);
@@ -75,7 +76,7 @@ int sys_chdir(userptr_t path);
 int sys___getcwd(userptr_t buf,size_t len,int *retval);
 int sys_write(int fd, userptr_t buf_ptr, size_t size);
 int sys_read(int fd, userptr_t buf_ptr, size_t size);
-int sys_lseek(int fd, off_t offset, int whence);
+int sys_lseek(int fd, off_t offset, int whence, off_t *retval);
 #endif
 void sys__exit(int status);
 int sys_waitpid(pid_t pid, userptr_t statusp, int options);
