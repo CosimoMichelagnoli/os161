@@ -511,6 +511,7 @@ proc_signal_end(struct proc *proc)
 void 
 proc_file_table_copy(struct proc *psrc, struct proc *pdest) {
   int fd;
+  spinlock_acquire(&psrc->p_lock);
   for (fd=0; fd<OPEN_MAX; fd++) {
     struct openfile *of = psrc->fileTable[fd];
     pdest->fileTable[fd] = of;
@@ -519,5 +520,6 @@ proc_file_table_copy(struct proc *psrc, struct proc *pdest) {
       openfileIncrRefCount(of);
     }
   }
+  spinlock_release(&psrc->p_lock);
 }
 #endif

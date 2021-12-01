@@ -124,6 +124,9 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
   vn = of->vn;
   if (vn==NULL) return -1;
 
+  lock_acquire(of->lk);
+  
+
   iov.iov_ubase = buf_ptr;
   iov.iov_len = size;
 
@@ -137,10 +140,12 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
 
   result = VOP_READ(vn, &u);
   if (result) {
+    lock_release(of->lk);
     return result;
   }
 
   of->offset = u.uio_offset;
+  lock_release(of->lk);
   return (size - u.uio_resid);
 }
 
@@ -157,7 +162,8 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
   if (of==NULL) return -1;
   vn = of->vn;
   if (vn==NULL) return -1;
-
+  
+  lock_acquire(of->lk);
   iov.iov_ubase = buf_ptr;
   iov.iov_len = size;
 
@@ -171,10 +177,12 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
 
   result = VOP_WRITE(vn, &u);
   if (result) {
+    lock_release(of->lk);
     return result;
   }
   of->offset = u.uio_offset;
   nwrite = size - u.uio_resid;
+  lock_release(of->lk);
   return (nwrite);
 }
 
@@ -211,7 +219,7 @@ sys_open(userptr_t path, int openflags, mode_t mode, int *errp)
 	return -1;
   }
   
-  if(valid_flags(openflags)){//too bee fixed
+  if(valid_flags(openflags)){
 	   
 	  /* search system open file table */
   	  for (i=0; i<SYSTEM_OPEN_MAX; i++) 
@@ -284,17 +292,27 @@ sys_close(int fd)
   struct openfile *of=NULL; 
   struct vnode *vn;
 
-  if (fd<0||fd>OPEN_MAX) return -1;
+  if (fd<0||fd>OPEN_MAX) return EBADF;
+
   of = curproc->fileTable[fd];
-  if (of==NULL) return -1;
+
+  if (of==NULL) return EBADF;
+
+  lock_acquire(of->lk);
+  KASSERT(of->countRef > 0);
   curproc->fileTable[fd] = NULL;
 
-  if (--of->countRef > 0) return 0; // just decrement ref cnt
+  if (--of->countRef > 0){
+  	lock_release(of->lk);
+  	return 0; // just decrement ref cnt
+  }
   vn = of->vn;
   of->vn = NULL;
   if (vn==NULL) return -1;
 
-  vfs_close(vn);	
+  vfs_close(vn);
+  lock_release(of->lk);
+  lock_destroy(of->lk);	
   return 0;
 }
 
@@ -308,6 +326,22 @@ sys_write(int fd, userptr_t buf_ptr, size_t size)
 {
   int i;
   char *p = (char *)buf_ptr;
+  //struct openfile *of=NULL; 
+  
+  
+  if(buf_ptr == NULL) return EFAULT;
+
+  if (fd<0||fd>OPEN_MAX) return EBADF;
+  
+  /*of = curproc->fileTable[fd];
+  
+  if(of == NULL) return EBADF;
+  
+  
+ 
+  if(!((of->accmode & O_WRONLY) == O_WRONLY ||
+       (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
+  
 
   if (fd!=STDOUT_FILENO && fd!=STDERR_FILENO) {
 #if OPT_FILE
@@ -330,6 +364,21 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
 {
   int i;
   char *p = (char *)buf_ptr;
+  //struct openfile *of=NULL;
+  
+  if(buf_ptr == NULL) return EFAULT;
+
+  if (fd<0||fd>OPEN_MAX) return EBADF;
+
+  /*of = curproc->fileTable[fd];
+  
+  if(of == NULL) return EBADF;
+  
+  
+ 
+  if(!((of->accmode & O_WRONLY) == O_RDONLY ||
+       (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
+  
 
   if (fd!=STDIN_FILENO) {
 #if OPT_FILE

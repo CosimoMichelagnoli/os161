@@ -539,6 +539,10 @@ thread_fork(const char *name,
 	/* Set up the switchframe so entrypoint() gets called */
 	switchframe_init(newthread, entrypoint, data1, data2);
 
+	/*spinlock_acquire(&curproc->p_lock);
+	proc_file_table_copy(curthread->t_proc, newthread->t_proc);
+	spinlock_release(&curproc->p_lock);*/
+
 	/* Lock the current cpu's run queue and make the new thread runnable */
 	thread_make_runnable(newthread, false);
 

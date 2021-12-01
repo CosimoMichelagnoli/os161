@@ -139,6 +139,7 @@ main(void)
 		warnx("read: after deletion: short count %d", len);
 	}
 
+	
 	if (!same(buf, TESTDATA, TESTLEN)) {
 		errx(1, "Failed: data read after deletion was not the same");
 	}

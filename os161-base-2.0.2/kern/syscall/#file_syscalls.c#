@@ -30,7 +30,7 @@
 /* max num of system wide open files */
 #define SYSTEM_OPEN_MAX (10*OPEN_MAX)
 
-#define USE_KERNEL_BUFFER 0
+#define USE_KERNEL_BUFFER 1
 
 #define MAX_DIR_LEN 128
 
@@ -125,7 +125,7 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
   if (vn==NULL) return -1;
 
   lock_acquire(of->lk);
-  
+  kprintf("offset :%d", (int)of->offset);
 
   iov.iov_ubase = buf_ptr;
   iov.iov_len = size;
@@ -326,20 +326,20 @@ sys_write(int fd, userptr_t buf_ptr, size_t size)
 {
   int i;
   char *p = (char *)buf_ptr;
-  struct openfile *of=NULL; 
+  //struct openfile *of=NULL; 
   
   
   if(buf_ptr == NULL) return EFAULT;
 
   if (fd<0||fd>OPEN_MAX) return EBADF;
   
-  of = curproc->fileTable[fd];
+  /*of = curproc->fileTable[fd];
   
   if(of == NULL) return EBADF;
   
   
  
-  /*if(!((of->accmode & O_WRONLY) == O_WRONLY ||
+  if(!((of->accmode & O_WRONLY) == O_WRONLY ||
        (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
   
 
@@ -364,19 +364,19 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
 {
   int i;
   char *p = (char *)buf_ptr;
-  struct openfile *of=NULL;
+  //struct openfile *of=NULL;
   
   if(buf_ptr == NULL) return EFAULT;
 
   if (fd<0||fd>OPEN_MAX) return EBADF;
 
-  of = curproc->fileTable[fd];
+  /*of = curproc->fileTable[fd];
   
   if(of == NULL) return EBADF;
   
   
  
-  /*if(!((of->accmode & O_WRONLY) == O_RDONLY ||
+  if(!((of->accmode & O_WRONLY) == O_RDONLY ||
        (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
   
 

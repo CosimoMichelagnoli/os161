@@ -114,6 +114,7 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
     return ENOMEM;
   }
   pid = newp->p_pid;
+  //spinlock_acquire(&curproc->p_lock);
   proc_addChild(curproc,pid); 
 
 
@@ -121,18 +122,21 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
      of thbe current process */
   tf_child = kmalloc(sizeof(struct trapframe));
   if(tf_child == NULL){
+    //spinlock_release(&curproc->p_lock);
     proc_destroy(newp);
     return ENOMEM; 
   }
   memcpy(tf_child, ctf, sizeof(struct trapframe));
   as_copy(curproc->p_addrspace, &(newp->p_addrspace));
   if(newp->p_addrspace == NULL){
+    //spinlock_release(&curproc->p_lock);
     proc_destroy(newp); 
     return ENOMEM; 
   }
 
 
-  proc_file_table_copy(newp,curproc);
+  proc_file_table_copy(curproc,newp);
+  //spinlock_release(&curproc->p_lock);
 
   /* we need a copy of the parent's trapframe */
 
