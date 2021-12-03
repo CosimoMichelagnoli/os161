@@ -28,67 +28,10 @@
 /*
  * system calls for process management
  */
-void
-sys__exit(int status)
-{
-  KASSERT(curproc != NULL);
-#if OPT_WAITPID
-  struct proc *p = curproc;
-  spinlock_acquire(&p->p_lock);
-  p->p_status = status & 0xff; /* just lower 8 bits returned */
-  spinlock_release(&p->p_lock);
-  proc_remthread(curthread);
-  proc_signal_end(p);
 
-#else
-  /* get address space of current process and destroy */
-  struct addrspace *as = proc_getas();
-  as_destroy(as);
-#endif
-  thread_exit();
 
-  panic("thread_exit returned (should not happen)\n");
-  (void) status; 
-}
 
-int
-sys_waitpid(pid_t pid, userptr_t statusp, int options)
-{
-  if(((uintptr_t)statusp % 4) != 0) return EFAULT;
-
-  if(statusp == NULL) return EFAULT;
-
-  if(pid < 0 || pid >= PID_MAX) return ESRCH;
-
-  if(options != 0 && options != 1 && options != 2) return EINVAL;
-#if OPT_WAITPID
-  struct proc *p = proc_search_pid(pid);
-  int s;
-  (void)options; /* not handled */
-  if (p==NULL) return -1;
-  s = proc_wait(p);
-  if (statusp!=NULL) 
-    *(int*)statusp = s;
-  return pid;
-#else
-  (void)options; /* not handled */
-  (void)pid;
-  (void)statusp;
-  return -1;
-#endif
-}
-
-pid_t
-sys_getpid(void)
-{
-#if OPT_WAITPID
-  KASSERT(curproc != NULL);
-  return curproc->p_pid;
-#else
-  return -1;
-#endif
-}
-
+/*
 #if OPT_FORK
 static void
 call_enter_forked_process(void *tfv, unsigned long dummy) {
@@ -118,8 +61,8 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
   proc_addChild(curproc,pid); 
 
 
-  /* done here as we need to duplicate the address space 
-     of thbe current process */
+  // done here as we need to duplicate the address space 
+     //of thbe current process 
   tf_child = kmalloc(sizeof(struct trapframe));
   if(tf_child == NULL){
     //spinlock_release(&curproc->p_lock);
@@ -135,18 +78,18 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
   }
 
 
-  proc_file_table_copy(newp,curproc);
+  proc_file_table_copy(curproc,newp);
   //spinlock_release(&curproc->p_lock);
 
-  /* we need a copy of the parent's trapframe */
+  // we need a copy of the parent's trapframe 
 
-  /* TO BE DONE: linking parent/child, so that child terminated 
-     on parent exit */
+  // TO BE DONE: linking parent/child, so that child terminated 
+  //   on parent exit 
 
   result = thread_fork(
 		 curthread->t_name, newp,
 		 call_enter_forked_process, 
-		 (void *)tf_child, (unsigned long)0/*unused*/);
+		 (void *)tf_child, (unsigned long)0);
 
   if (result){
     proc_destroy(newp);
@@ -158,7 +101,7 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
 
   return 0;
 }
-#endif
+#endif*/
 
 #if OPT_EXECV
 int

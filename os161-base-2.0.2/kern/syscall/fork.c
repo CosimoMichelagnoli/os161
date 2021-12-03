@@ -1,0 +1,88 @@
+/*
+ * Authors: C.Michelagnoli, G.Piombino
+ * Implementation of sys_fork.
+ */
+#include <types.h>
+#include <lib.h>
+#include <kern/errno.h>
+#include <proc.h>
+#include <copyinout.h> 
+#include <thread.h>
+#include <current.h>
+#include <addrspace.h>
+#include <mips/trapframe.h>
+#include <synch.h>
+#include <syscall.h>
+
+
+
+#if OPT_FORK
+static void
+call_enter_forked_process(void *tfv, unsigned long dummy) {
+  struct trapframe *tf = (struct trapframe *)tfv;
+  (void)dummy;
+  enter_forked_process(tf); 
+ 
+  panic("enter_forked_process returned (should not happen)\n");
+}
+
+int sys_fork(struct trapframe *ctf, pid_t *retval) {
+  struct trapframe *tf_child;
+  struct proc *newp;
+  int result;
+  pid_t	pid;
+  struct proc *debug =curproc;
+  struct thread *thread = curthread;
+  KASSERT(curproc != NULL&&thread !=NULL);
+  KASSERT(debug != NULL);
+
+  newp = proc_create_runprogram(curproc->p_name);
+  if (newp == NULL) {
+    return ENOMEM;
+  }
+  pid = newp->p_pid;
+  //spinlock_acquire(&curproc->p_lock);
+  proc_addChild(curproc,pid); 
+
+
+  /* done here as we need to duplicate the address space 
+     of thbe current process */
+  tf_child = kmalloc(sizeof(struct trapframe));
+  if(tf_child == NULL){
+    //spinlock_release(&curproc->p_lock);
+    proc_destroy(newp);
+    return ENOMEM; 
+  }
+  memcpy(tf_child, ctf, sizeof(struct trapframe));
+  as_copy(curproc->p_addrspace, &(newp->p_addrspace));
+  if(newp->p_addrspace == NULL){
+    //spinlock_release(&curproc->p_lock);
+    proc_destroy(newp); 
+    return ENOMEM; 
+  }
+
+
+  proc_file_table_copy(curproc,newp);
+  //spinlock_release(&curproc->p_lock);
+
+  /* we need a copy of the parent's trapframe */
+
+  /* TO BE DONE: linking parent/child, so that child terminated 
+     on parent exit */
+
+  result = thread_fork(
+		 curthread->t_name, newp,
+		 call_enter_forked_process, 
+		 (void *)tf_child, (unsigned long)0/*unused*/);
+
+  if (result){
+    proc_destroy(newp);
+    kfree(tf_child);
+    return ENOMEM;
+  }
+
+  *retval = pid;
+
+  return 0;
+}
+#endif

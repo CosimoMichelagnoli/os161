@@ -1,37 +1,20 @@
 /*
- * AUthor: G.Cabodi
- * Very simple implementation of sys__exit.
- * It just avoids crash/panic. Full process exit still TODO
- * Address space is released
+ * Authors: C.Michelagnoli, G.Piombino
+ * Implementation of sys_execv.
  */
-
 #include <types.h>
-#include <kern/unistd.h>
-#include <kern/errno.h>
-#include <kern/fcntl.h> //here it's defined O_RDONLY
-#include <clock.h>
-#include <copyinout.h>
-#include <syscall.h>
 #include <lib.h>
+#include <kern/errno.h>
 #include <proc.h>
+#include <copyinout.h> 
 #include <thread.h>
+#include <current.h>
 #include <addrspace.h>
-//#include <vm.h>
-#include <limits.h>
+#include <kern/fcntl.h> //here it's defined O_RDONLY
 #include <vfs.h>
 #include <mips/trapframe.h>
-#include <current.h>
 #include <synch.h>
-#include <test.h>
-
-
-/*
- * system calls for process management
- */
-
-
-
-
+#include <syscall.h>
 
 #if OPT_EXECV
 int
@@ -194,5 +177,4 @@ sys_execv(char *progname, char **args){
 	return EINVAL;
 }
 #endif
-
 

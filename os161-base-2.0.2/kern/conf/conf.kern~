@@ -384,15 +384,21 @@ file      syscall/time_syscalls.c
 file      main/main.c
 file      main/menu.c
 
-#### NEW 04/08 FOR GIANFRY KERNEL####
+#### SHELL-C2 KERNEL####
 
 defoption syscalls
 defoption synch
 defoption waitpid
 defoption fork
+defoption execv
 defoption file
+
 optfile syscalls syscall/file_syscalls.c
 optfile syscalls syscall/proc_syscalls.c
+optfile syscalls syscall/exit.c
+optfile syscalls syscall/waitpid.c
+optfile syscalls syscall/getpid.c
+optfile syscalls syscall/fork.c
 
 ########################################
 #                                      #
