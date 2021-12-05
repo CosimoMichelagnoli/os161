@@ -1,6 +1,6 @@
 /*
  * Authors: C.Michelagnoli, G.Piombino
- * Implementation of sys_getpid.
+ * Implementation of sys_fork.
  */
 #include <types.h>
 #include <lib.h>
@@ -60,6 +60,7 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
     proc_destroy(newp); 
     return ENOMEM; 
   }
+  newp->p_proc = &curproc;
 
 
   proc_file_table_copy(curproc,newp);

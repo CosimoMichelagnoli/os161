@@ -117,6 +117,7 @@ proc_init_waitpid(struct proc *proc, const char *name) {
     panic("too many processes. proc table is full\n");
   }
   proc->p_status = 0;
+  proc->exited = false;
 
 #if OPT_FORK
   proc->p_children=array_create();
@@ -480,7 +481,7 @@ proc_wait(struct proc *proc)
         P(proc->p_sem);
 #else
         lock_acquire(proc->cv_lock);
-        cv_wait(proc->p_cv,proc->cv_lock);
+	while(proc->exited == false) cv_wait(proc->p_cv,proc->cv_lock);
         lock_release(proc->cv_lock);
 #endif
         return_status = proc->p_status;

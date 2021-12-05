@@ -1,5 +1,5 @@
 /*
- * AUthors: C.Michelagnoli, G.Piombino
+ * Authors: C.Michelagnoli, G.Piombino
  * Implementation of sys__exit.
  */
 #include <types.h>

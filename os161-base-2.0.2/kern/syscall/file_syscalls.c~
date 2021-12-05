@@ -326,20 +326,20 @@ sys_write(int fd, userptr_t buf_ptr, size_t size)
 {
   int i;
   char *p = (char *)buf_ptr;
-  struct openfile *of=NULL; 
+  //struct openfile *of=NULL; 
   
   
   if(buf_ptr == NULL) return EFAULT;
 
   if (fd<0||fd>OPEN_MAX) return EBADF;
   
-  of = curproc->fileTable[fd];
+  /*of = curproc->fileTable[fd];
   
   if(of == NULL) return EBADF;
   
   
  
-  /*if(!((of->accmode & O_WRONLY) == O_WRONLY ||
+  if(!((of->accmode & O_WRONLY) == O_WRONLY ||
        (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
   
 
@@ -364,19 +364,19 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
 {
   int i;
   char *p = (char *)buf_ptr;
-  struct openfile *of=NULL;
+  //struct openfile *of=NULL;
   
   if(buf_ptr == NULL) return EFAULT;
 
   if (fd<0||fd>OPEN_MAX) return EBADF;
 
-  of = curproc->fileTable[fd];
+  /*of = curproc->fileTable[fd];
   
   if(of == NULL) return EBADF;
   
   
  
-  /*if(!((of->accmode & O_WRONLY) == O_RDONLY ||
+  if(!((of->accmode & O_WRONLY) == O_RDONLY ||
        (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
   
 
@@ -493,46 +493,4 @@ sys___getcwd(userptr_t buf,size_t len,int *retval){
 
 }
 
-int
-sys_lseek(int fd, off_t offset, int whence, off_t *retval){
-#if OPT_FILE
-	/*if whence is:
-	SEEK_SET -> the new position is offset
-	SEEK_CUR -> the new position is current + offset
-	SEEK_END -> the new position is end-of-file + offset
-	else FAIL*/
-	/*struct vnode *vn;
-	int err;*/
-	struct openfile *of = NULL;
-	off_t newoffset;
-	
-	//fd is not a valid file handle
-	if (fd<0||fd>OPEN_MAX) return EBADF;
-  	of = curproc->fileTable[fd];
-  	if ((of==NULL) || (of->countRef == 0)) return EBADF;
 
-	if(whence == SEEK_SET){
-		newoffset = offset;
-	} else if(whence == SEEK_CUR){
-			newoffset = of->offset + offset;
-	} else if(whence == SEEK_END){
-			struct stat *file_stat = kmalloc(sizeof(struct stat));
-			VOP_STAT(of->vn, file_stat);
-			newoffset = file_stat->st_size + offset;
-	} else{
-		return EINVAL;
-	}
-	if (newoffset < 0) /*|| (newoffset > EOF)*/ return EINVAL;
-
-
-	/*vn = of->vn;
-	err = VOP_TRYSEEK(vn, newoffset);
-	if (err) return err;*/
-	
-	of->offset = newoffset;
-	*retval = newoffset;
-
-	return 0;
-
-#endif
-}
