@@ -28,12 +28,11 @@ sys_waitpid(pid_t pid, userptr_t statusp, int options)
 
   struct proc *p = proc_search_pid(pid);
 
+  if (p==NULL) return -1;
+
   if(p->p_proc != curproc) return ECHILD;
 
   int s;
-  (void)options; /* not handled */
-
-  if (p==NULL) return -1;
 
   s = proc_wait(p);
 

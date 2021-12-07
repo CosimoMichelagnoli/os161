@@ -91,6 +91,7 @@ void
 P(struct semaphore *sem)
 {
         KASSERT(sem != NULL);
+	//int spl;
 
         /*
          * May not block in an interrupt handler.
@@ -101,6 +102,7 @@ P(struct semaphore *sem)
         KASSERT(curthread->t_in_interrupt == false);
 
 	/* Use the semaphore spinlock to protect the wchan as well. */
+	//spl = splhigh();
 	spinlock_acquire(&sem->sem_lock);
         while (sem->sem_count == 0) {
 		/*
@@ -120,13 +122,14 @@ P(struct semaphore *sem)
         KASSERT(sem->sem_count > 0);
         sem->sem_count--;
 	spinlock_release(&sem->sem_lock);
+  	//splx(spl);
 }
 
 void
 V(struct semaphore *sem)
-{
+{	//int spl;
         KASSERT(sem != NULL);
-
+	//spl = splhigh();
 	spinlock_acquire(&sem->sem_lock);
 
         sem->sem_count++;
@@ -134,6 +137,7 @@ V(struct semaphore *sem)
 	wchan_wakeone(sem->sem_wchan, &sem->sem_lock);
 
 	spinlock_release(&sem->sem_lock);
+	//splx(spl);
 }
 
 ////////////////////////////////////////////////////////////
@@ -200,9 +204,6 @@ lock_acquire(struct lock *lock)
         // Write this
 #if OPT_SYNCH
         KASSERT(lock != NULL);
-	if (lock_do_i_hold(lock)) {
-	  kprintf("AAACKK!\n");
-	}
 	KASSERT(!(lock_do_i_hold(lock)));
 
         KASSERT(curthread->t_in_interrupt == false);
@@ -220,14 +221,17 @@ lock_acquire(struct lock *lock)
 #else
 	spinlock_acquire(&lock->lk_lock);        
 	while (lock->lk_owner != NULL) {
+	  //wchan_lock(lock->lk_wchan);
+      	  //spinlock_release(&lock->lk_lock);	  
 	  wchan_sleep(lock->lk_wchan, &lock->lk_lock);
+	  //spinlock_acquire(&lock->lk_lock);
         }
 #endif
         KASSERT(lock->lk_owner == NULL);
         lock->lk_owner=curthread;
 	spinlock_release(&lock->lk_lock);
 #endif
-        (void)lock;  // suppress warning until code gets written
+        
 }
 
 void
@@ -249,7 +253,7 @@ lock_release(struct lock *lock)
 	spinlock_release(&lock->lk_lock);
 #endif
 
-        (void)lock;  // suppress warning until code gets written
+        
 }
 
 bool
@@ -266,15 +270,19 @@ lock_do_i_hold(struct lock *lock)
 	    If NOT the owner, a wrong verdict could happen (very low chance!!!)
             by wrongly reading a pointer == curthread. However, using the spinlock 
 	    is good practice for shared data. */
+#if USE_SEMAPHORE_FOR_LOCK
 	spinlock_acquire(&lock->lk_lock);
 	res = lock->lk_owner == curthread;
 	spinlock_release(&lock->lk_lock);
+#else
+	res = lock->lk_owner == curthread;
+#endif
 	return res;
 #endif
 
-        (void)lock;  // suppress warning until code gets written
 
-        return true; // dummy until code gets written
+
+        return false; // dummy until code gets written
 }
 
 ////////////////////////////////////////////////////////////

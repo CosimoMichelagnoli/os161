@@ -67,7 +67,7 @@ struct vnode;
 #if OPT_WAITPID
 /* G.Cabodi - 2019 - implement waitpid: 
    synch with semaphore (1) or cond.var.(0) */
-#define USE_SEMAPHORE_FOR_WAITPID 1
+#define USE_SEMAPHORE_FOR_WAITPID 0
 #endif
 
 struct proc {
@@ -103,6 +103,8 @@ struct proc {
         struct openfile *fileTable[OPEN_MAX];
 #endif
 };
+
+//struct lock *process_table_lock;
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;

@@ -30,7 +30,7 @@
 /* max num of system wide open files */
 #define SYSTEM_OPEN_MAX (10*OPEN_MAX)
 
-#define USE_KERNEL_BUFFER 0
+#define USE_KERNEL_BUFFER 1
 
 #define MAX_DIR_LEN 128
 
@@ -65,18 +65,20 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
   of = curproc->fileTable[fd];
   if (of==NULL) return -1;
   vn = of->vn;
+  lock_acquire(of->lk);
   if (vn==NULL) return -1;
-
   kbuf = kmalloc(size);
   uio_kinit(&iov, &ku, kbuf, size, of->offset, UIO_READ);
   result = VOP_READ(vn, &ku);
   if (result) {
+    lock_release(of->lk);
     return result;
   }
   of->offset = ku.uio_offset;
   nread = size - ku.uio_resid;
   copyout(kbuf,buf_ptr,nread);
   kfree(kbuf);
+  lock_release(of->lk);
   return (nread);
 }
 
@@ -88,10 +90,10 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
   struct vnode *vn;
   struct openfile *of;
   void *kbuf;
-
   if (fd<0||fd>OPEN_MAX) return -1;
   of = curproc->fileTable[fd];
   if (of==NULL) return -1;
+  lock_acquire(of->lk);
   vn = of->vn;
   if (vn==NULL) return -1;
 
@@ -100,11 +102,13 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
   uio_kinit(&iov, &ku, kbuf, size, of->offset, UIO_WRITE);
   result = VOP_WRITE(vn, &ku);
   if (result) {
+    lock_release(of->lk);
     return result;
   }
   kfree(kbuf);
   of->offset = ku.uio_offset;
   nwrite = size - ku.uio_resid;
+  lock_release(of->lk);
   return (nwrite);
 }
 
@@ -121,10 +125,10 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
   if (fd<0||fd>OPEN_MAX) return -1;
   of = curproc->fileTable[fd];
   if (of==NULL) return -1;
+  lock_acquire(of->lk);
   vn = of->vn;
   if (vn==NULL) return -1;
-
-  lock_acquire(of->lk);
+  //spinlock_acquire(&curproc->p_lock);
   
 
   iov.iov_ubase = buf_ptr;
@@ -141,11 +145,13 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
   result = VOP_READ(vn, &u);
   if (result) {
     lock_release(of->lk);
+    //spinlock_release(&curproc->p_lock);
     return result;
   }
 
   of->offset = u.uio_offset;
   lock_release(of->lk);
+  //spinlock_release(&curproc->p_lock);
   return (size - u.uio_resid);
 }
 
@@ -160,10 +166,10 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
   if (fd<0||fd>OPEN_MAX) return -1;
   of = curproc->fileTable[fd];
   if (of==NULL) return -1;
+  lock_acquire(of->lk);
   vn = of->vn;
   if (vn==NULL) return -1;
   
-  lock_acquire(of->lk);
   iov.iov_ubase = buf_ptr;
   iov.iov_len = size;
 
@@ -194,12 +200,13 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
 bool
 valid_flags(int flags){
 	int count = 0;
+	flags = flags & O_ACCMODE;
 
-	if((flags & O_RDONLY) == O_RDONLY) count++;
+	if(flags  == O_RDONLY) count++;
 
-	if((flags & O_WRONLY) == O_WRONLY) count++;
+	if(flags  == O_WRONLY) count++;
 
-	if((flags & O_RDWR) == O_RDWR) count ++;
+	if(flags  == O_RDWR) count ++;
 
 	return count == 1;
 }
@@ -351,11 +358,9 @@ sys_write(int fd, userptr_t buf_ptr, size_t size)
     return -1;
 #endif
   }
-
   for (i=0; i<(int)size; i++) {
     putch(p[i]);
   }
-
   return (int)size;
 }
 
@@ -380,6 +385,7 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
        (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
   
 
+  
   if (fd!=STDIN_FILENO) {
 #if OPT_FILE
     return file_read(fd, buf_ptr, size);
@@ -388,13 +394,12 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
     return -1;
 #endif
   }
-
   for (i=0; i<(int)size; i++) {
     p[i] = getch();
-    if (p[i] < 0) 
+    if (p[i] < 0){
       return i;
+    }
   }
-
   return (int)size;
 }
 

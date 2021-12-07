@@ -81,7 +81,7 @@ proc_search_pid(pid_t pid) {
   struct proc *p;
   KASSERT(pid>=0&&pid<MAX_PROC);
   p = processTable.proc[pid];
-  KASSERT(p->p_pid==pid);
+  if(p->p_pid!=pid) return NULL;
   return p;
 #else
   (void)pid;
@@ -302,10 +302,10 @@ proc_destroy(struct proc *proc)
 		as_destroy(as);
 	}
 
+	proc_end_waitpid(proc);
 	KASSERT(proc->p_numthreads == 0);
 	spinlock_cleanup(&proc->p_lock);
 
-	proc_end_waitpid(proc);
 
 	kfree(proc->p_name);
 	kfree(proc);
@@ -500,9 +500,11 @@ void
 proc_signal_end(struct proc *proc)
 {
 #if USE_SEMAPHORE_FOR_WAITPID
+      proc->exited = true;
       V(proc->p_sem);
 #else
       lock_acquire(proc->cv_lock);
+      proc->exited = true;
       cv_signal(proc->p_cv,proc->cv_lock);
       lock_release(proc->cv_lock);
 #endif

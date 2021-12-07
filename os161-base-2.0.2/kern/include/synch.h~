@@ -37,7 +37,7 @@
 
 
 #include <spinlock.h>
-//#include <spl.h>
+#include <spl.h>
 /* ------------------------------------------------------------- */
 /* G.Cabodi - 2019 - implementing locks and CVs */
 /* option "synch" needed in conf.kern (and enabled!) */

@@ -7,15 +7,17 @@
 #include <lib.h>
 #include <kern/errno.h>
 #include <proc.h>
-#include <copyinout.h> //TODO do a better sys_call
+#include <copyinout.h> 
 #include <thread.h>
 #include <current.h>
 #include <synch.h>
 #include <syscall.h>
+//#include <kern/proc.c>
 
 int
 sys_waitpid(pid_t pid, userptr_t statusp, int options)
-{
+{ 
+  spinlock_acquire(
   if(((uintptr_t)statusp % 4) != 0) return EFAULT;
 
   if(statusp == NULL) return EFAULT;
@@ -28,12 +30,11 @@ sys_waitpid(pid_t pid, userptr_t statusp, int options)
 
   struct proc *p = proc_search_pid(pid);
 
+  if (p==NULL) return -1;
+
   if(p->p_proc != curproc) return ECHILD;
 
   int s;
-  (void)options; /* not handled */
-
-  if (p==NULL) return -1;
 
   s = proc_wait(p);
 
