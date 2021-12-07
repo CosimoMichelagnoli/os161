@@ -121,10 +121,10 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
   if (fd<0||fd>OPEN_MAX) return -1;
   of = curproc->fileTable[fd];
   if (of==NULL) return -1;
+  lock_acquire(of->lk);
   vn = of->vn;
   if (vn==NULL) return -1;
 
-  lock_acquire(of->lk);
   
 
   iov.iov_ubase = buf_ptr;
@@ -160,10 +160,10 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
   if (fd<0||fd>OPEN_MAX) return -1;
   of = curproc->fileTable[fd];
   if (of==NULL) return -1;
+  lock_acquire(of->lk);
   vn = of->vn;
   if (vn==NULL) return -1;
   
-  lock_acquire(of->lk);
   iov.iov_ubase = buf_ptr;
   iov.iov_len = size;
 
@@ -194,12 +194,13 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
 bool
 valid_flags(int flags){
 	int count = 0;
+	flags = flags & O_ACCMODE;
 
-	if((flags & O_RDONLY) == O_RDONLY) count++;
+	if(flags == O_RDONLY) count++;
 
-	if((flags & O_WRONLY) == O_WRONLY) count++;
+	if(flags == O_WRONLY) count++;
 
-	if((flags & O_RDWR) == O_RDWR) count ++;
+	if(flags == O_RDWR) count ++;
 
 	return count == 1;
 }
@@ -345,16 +346,19 @@ sys_write(int fd, userptr_t buf_ptr, size_t size)
 
   if (fd!=STDOUT_FILENO && fd!=STDERR_FILENO) {
 #if OPT_FILE
+    //kfree(of);
     return file_write(fd, buf_ptr, size);
 #else
     kprintf("sys_write supported only to stdout\n");
     return -1;
 #endif
   }
-
+  //lock_acquire(of->lk);
+  kprintf("...................\n");
   for (i=0; i<(int)size; i++) {
     putch(p[i]);
   }
+  //lock_release(of->lk);
 
   return (int)size;
 }
@@ -388,13 +392,14 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
     return -1;
 #endif
   }
-
+  //lock_acquire(of->lk);
+  kprintf("..................\n");
   for (i=0; i<(int)size; i++) {
     p[i] = getch();
     if (p[i] < 0) 
       return i;
   }
-
+  //lock_release(of->lk);
   return (int)size;
 }
 

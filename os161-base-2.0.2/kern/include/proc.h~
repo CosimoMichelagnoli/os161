@@ -67,7 +67,7 @@ struct vnode;
 #if OPT_WAITPID
 /* G.Cabodi - 2019 - implement waitpid: 
    synch with semaphore (1) or cond.var.(0) */
-#define USE_SEMAPHORE_FOR_WAITPID 0
+#define USE_SEMAPHORE_FOR_WAITPID 1
 #endif
 
 struct proc {

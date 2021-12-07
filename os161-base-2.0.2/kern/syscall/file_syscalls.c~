@@ -326,20 +326,20 @@ sys_write(int fd, userptr_t buf_ptr, size_t size)
 {
   int i;
   char *p = (char *)buf_ptr;
-  struct openfile *of=NULL; 
+  //struct openfile *of=NULL; 
   
   
   if(buf_ptr == NULL) return EFAULT;
 
   if (fd<0||fd>OPEN_MAX) return EBADF;
   
-  of = curproc->fileTable[fd];
+  /*of = curproc->fileTable[fd];
   
   if(of == NULL) return EBADF;
   
   
  
-  /*if(!((of->accmode & O_WRONLY) == O_WRONLY ||
+  if(!((of->accmode & O_WRONLY) == O_WRONLY ||
        (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
   
 
@@ -364,19 +364,19 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
 {
   int i;
   char *p = (char *)buf_ptr;
-  struct openfile *of=NULL;
+  //struct openfile *of=NULL;
   
   if(buf_ptr == NULL) return EFAULT;
 
   if (fd<0||fd>OPEN_MAX) return EBADF;
 
-  of = curproc->fileTable[fd];
+  /*of = curproc->fileTable[fd];
   
   if(of == NULL) return EBADF;
   
   
  
-  /*if(!((of->accmode & O_WRONLY) == O_RDONLY ||
+  if(!((of->accmode & O_WRONLY) == O_RDONLY ||
        (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
   
 
