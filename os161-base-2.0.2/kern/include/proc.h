@@ -87,7 +87,9 @@ struct proc {
         /* G.Cabodi - 2019 - implement waitpid: synchro, and exit status */
         int p_status;                   /* status as obtained by exit() */
         pid_t p_pid;                    /* process pid */	
+
 	struct proc *p_proc;	//parent process
+
 #if OPT_FORK
         struct array *p_children;
 #endif 

@@ -12,7 +12,6 @@
 #include <current.h>
 #include <lib.h>
 #include <opt-file.h>
-#include <synch.h>
 
 #if OPT_FILE
 
@@ -22,28 +21,20 @@
 #include <limits.h>
 #include <uio.h>
 #include <proc.h>
-//#include <kern/stdio.h>
-#include <kern/fcntl.h>
-#include <kern/seek.h>
-#include <kern/stat.h>
 
 /* max num of system wide open files */
 #define SYSTEM_OPEN_MAX (10*OPEN_MAX)
 
-#define USE_KERNEL_BUFFER 1
-
-#define MAX_DIR_LEN 128
+#define USE_KERNEL_BUFFER 0
 
 /* system open file table */
-/*struct openfile {
+struct openfile {
   struct vnode *vn;
   off_t offset;	
-  int accmode;
   unsigned int countRef;
-  struct lock *lk;
 };
 
-struct openfile systemFileTable[SYSTEM_OPEN_MAX];*/
+struct openfile systemFileTable[SYSTEM_OPEN_MAX];
 
 void openfileIncrRefCount(struct openfile *of) {
   if (of!=NULL)
@@ -65,20 +56,18 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
   of = curproc->fileTable[fd];
   if (of==NULL) return -1;
   vn = of->vn;
-  lock_acquire(of->lk);
   if (vn==NULL) return -1;
+
   kbuf = kmalloc(size);
   uio_kinit(&iov, &ku, kbuf, size, of->offset, UIO_READ);
   result = VOP_READ(vn, &ku);
   if (result) {
-    lock_release(of->lk);
     return result;
   }
   of->offset = ku.uio_offset;
   nread = size - ku.uio_resid;
   copyout(kbuf,buf_ptr,nread);
   kfree(kbuf);
-  lock_release(of->lk);
   return (nread);
 }
 
@@ -90,10 +79,10 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
   struct vnode *vn;
   struct openfile *of;
   void *kbuf;
+
   if (fd<0||fd>OPEN_MAX) return -1;
   of = curproc->fileTable[fd];
   if (of==NULL) return -1;
-  lock_acquire(of->lk);
   vn = of->vn;
   if (vn==NULL) return -1;
 
@@ -102,13 +91,11 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
   uio_kinit(&iov, &ku, kbuf, size, of->offset, UIO_WRITE);
   result = VOP_WRITE(vn, &ku);
   if (result) {
-    lock_release(of->lk);
     return result;
   }
   kfree(kbuf);
   of->offset = ku.uio_offset;
   nwrite = size - ku.uio_resid;
-  lock_release(of->lk);
   return (nwrite);
 }
 
@@ -125,15 +112,8 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
   if (fd<0||fd>OPEN_MAX) return -1;
   of = curproc->fileTable[fd];
   if (of==NULL) return -1;
-  lock_acquire(of->lk);
   vn = of->vn;
   if (vn==NULL) return -1;
-<<<<<<< HEAD
-  //spinlock_acquire(&curproc->p_lock);
-=======
-
->>>>>>> 3de5170eaf39c72d87de0e3ebdc2c0933e2377c7
-  
 
   iov.iov_ubase = buf_ptr;
   iov.iov_len = size;
@@ -148,14 +128,10 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
 
   result = VOP_READ(vn, &u);
   if (result) {
-    lock_release(of->lk);
-    //spinlock_release(&curproc->p_lock);
     return result;
   }
 
   of->offset = u.uio_offset;
-  lock_release(of->lk);
-  //spinlock_release(&curproc->p_lock);
   return (size - u.uio_resid);
 }
 
@@ -170,10 +146,9 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
   if (fd<0||fd>OPEN_MAX) return -1;
   of = curproc->fileTable[fd];
   if (of==NULL) return -1;
-  lock_acquire(of->lk);
   vn = of->vn;
   if (vn==NULL) return -1;
-  
+
   iov.iov_ubase = buf_ptr;
   iov.iov_len = size;
 
@@ -187,12 +162,10 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
 
   result = VOP_WRITE(vn, &u);
   if (result) {
-    lock_release(of->lk);
     return result;
   }
   of->offset = u.uio_offset;
   nwrite = size - u.uio_resid;
-  lock_release(of->lk);
   return (nwrite);
 }
 
@@ -201,105 +174,46 @@ file_write(int fd, userptr_t buf_ptr, size_t size) {
 /*
  * file system calls for open/close
  */
-bool
-valid_flags(int flags){
-	int count = 0;
-	flags = flags & O_ACCMODE;
-
-<<<<<<< HEAD
-	if(flags  == O_RDONLY) count++;
-
-	if(flags  == O_WRONLY) count++;
-
-	if(flags  == O_RDWR) count ++;
-=======
-	if(flags == O_RDONLY) count++;
-
-	if(flags == O_WRONLY) count++;
-
-	if(flags == O_RDWR) count ++;
->>>>>>> 3de5170eaf39c72d87de0e3ebdc2c0933e2377c7
-
-	return count == 1;
-}
-
 int
 sys_open(userptr_t path, int openflags, mode_t mode, int *errp)
 {
   int fd, i;
-  char kbuf[NAME_MAX];
   struct vnode *v;
   struct openfile *of=NULL;; 	
   int result;
-  size_t actual;
 
-  if(path == NULL){
-	*errp = EFAULT;
-	return -1;
+  result = vfs_open((char *)path, openflags, mode, &v);
+  if (result) {
+    *errp = ENOENT;
+    return -1;
   }
-  
-  if(valid_flags(openflags)){
-	   
-	  /* search system open file table */
-  	  for (i=0; i<SYSTEM_OPEN_MAX; i++) 
-	    if (systemFileTable[i].vn==NULL) break;
-
-	  if(i >= SYSTEM_OPEN_MAX){
-		*errp = ENFILE;
-		return -1;
-	  } 
-
-          if((result = copyinstr(path, kbuf, NAME_MAX, &actual)) != 0) return -1;
-		  
-
-	  result = vfs_open(kbuf, openflags, mode, &v);
-	  if (result) {
-	    *errp = ENOENT;
-	    return -1;
-	  }
-	   
-	  of = &systemFileTable[i]; // kmalloc(sizeof(struct openfile));
-
-	  if (of==NULL) { 
-		    // no free slot in system open file table
-		    *errp = ENFILE;
-	  }
-	  else {
-		  of->lk = lock_create("file lock");
-		  if(of->lk == NULL){
-		  	vfs_close(v);
-			*errp = ENOMEM;
-			kfree(of);
-			return -1;		  
-		  }
-		  of->vn = v;
-		  of->countRef = 1;
-		  of->offset = 0;
-		  of->accmode = openflags & O_ACCMODE;
-
-		  if((openflags & O_APPEND) == O_APPEND){
-			   struct stat file_stat;
-			   VOP_STAT(of->vn, &file_stat);
-			   of->offset = file_stat.st_size;
-		  }		      
-		  
-		  for (fd=STDERR_FILENO+1; fd<OPEN_MAX; fd++) {
-		      if (curproc->fileTable[fd] == NULL) {
-				curproc->fileTable[fd] = of;
-				return fd;
-		      }
-		    }
-		    // no free slot in process open file table
-		    *errp = EMFILE;
-	  }
-	  
-	  vfs_close(v);
-	  return -1;
+  /* search system open file table */
+  for (i=0; i<SYSTEM_OPEN_MAX; i++) {
+    if (systemFileTable[i].vn==NULL) {
+      of = &systemFileTable[i];
+      of->vn = v;
+      of->offset = 0; // TODO: handle offset with append
+      of->countRef = 1;
+      break;
+    }
+  }
+  if (of==NULL) { 
+    // no free slot in system open file table
+    *errp = ENFILE;
   }
   else {
-	*errp = EINVAL;
-	return -1;
+    for (fd=STDERR_FILENO+1; fd<OPEN_MAX; fd++) {
+      if (curproc->fileTable[fd] == NULL) {
+	curproc->fileTable[fd] = of;
+	return fd;
+      }
+    }
+    // no free slot in process open file table
+    *errp = EMFILE;
   }
+  
+  vfs_close(v);
+  return -1;
 }
 
 /*
@@ -311,27 +225,17 @@ sys_close(int fd)
   struct openfile *of=NULL; 
   struct vnode *vn;
 
-  if (fd<0||fd>OPEN_MAX) return EBADF;
-
+  if (fd<0||fd>OPEN_MAX) return -1;
   of = curproc->fileTable[fd];
-
-  if (of==NULL) return EBADF;
-
-  lock_acquire(of->lk);
-  KASSERT(of->countRef > 0);
+  if (of==NULL) return -1;
   curproc->fileTable[fd] = NULL;
 
-  if (--of->countRef > 0){
-  	lock_release(of->lk);
-  	return 0; // just decrement ref cnt
-  }
+  if (--of->countRef > 0) return 0; // just decrement ref cnt
   vn = of->vn;
   of->vn = NULL;
   if (vn==NULL) return -1;
 
-  vfs_close(vn);
-  lock_release(of->lk);
-  lock_destroy(of->lk);	
+  vfs_close(vn);	
   return 0;
 }
 
@@ -345,26 +249,9 @@ sys_write(int fd, userptr_t buf_ptr, size_t size)
 {
   int i;
   char *p = (char *)buf_ptr;
-  //struct openfile *of=NULL; 
-  
-  
-  if(buf_ptr == NULL) return EFAULT;
-
-  if (fd<0||fd>OPEN_MAX) return EBADF;
-  
-  /*of = curproc->fileTable[fd];
-  
-  if(of == NULL) return EBADF;
-  
-  
- 
-  if(!((of->accmode & O_WRONLY) == O_WRONLY ||
-       (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
-  
 
   if (fd!=STDOUT_FILENO && fd!=STDERR_FILENO) {
 #if OPT_FILE
-    //kfree(of);
     return file_write(fd, buf_ptr, size);
 #else
     kprintf("sys_write supported only to stdout\n");
@@ -372,12 +259,9 @@ sys_write(int fd, userptr_t buf_ptr, size_t size)
 #endif
   }
 
-  //lock_acquire(of->lk);
-  kprintf("...................\n");
   for (i=0; i<(int)size; i++) {
     putch(p[i]);
   }
-  //lock_release(of->lk);
 
   return (int)size;
 }
@@ -387,23 +271,7 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
 {
   int i;
   char *p = (char *)buf_ptr;
-  //struct openfile *of=NULL;
-  
-  if(buf_ptr == NULL) return EFAULT;
 
-  if (fd<0||fd>OPEN_MAX) return EBADF;
-
-  /*of = curproc->fileTable[fd];
-  
-  if(of == NULL) return EBADF;
-  
-  
- 
-  if(!((of->accmode & O_WRONLY) == O_RDONLY ||
-       (of->accmode & O_RDWR) == O_RDWR))  return EBADF;*/
-  
-
-  
   if (fd!=STDIN_FILENO) {
 #if OPT_FILE
     return file_read(fd, buf_ptr, size);
@@ -412,21 +280,13 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
     return -1;
 #endif
   }
-<<<<<<< HEAD
-=======
-  //lock_acquire(of->lk);
-  kprintf("..................\n");
->>>>>>> 3de5170eaf39c72d87de0e3ebdc2c0933e2377c7
+
   for (i=0; i<(int)size; i++) {
     p[i] = getch();
-    if (p[i] < 0){
+    if (p[i] < 0) 
       return i;
-    }
   }
-<<<<<<< HEAD
-=======
-  //lock_release(of->lk);
->>>>>>> 3de5170eaf39c72d87de0e3ebdc2c0933e2377c7
+
   return (int)size;
 }
 
@@ -443,7 +303,7 @@ sys_dup2(int oldfd, int newfd)
 
 	p=curthread->t_proc;
 
-	if( (oldfd<0 || newfd<0 || oldfd>OPEN_MAX || newfd>OPEN_MAX))
+	if( (oldfd<0 || newfd<0 || oldfd>OPEN_MAX || newfd>OPEN_MAX)
 		return EBADF;
 
 	fold=p->fileTable[oldfd];
@@ -460,69 +320,12 @@ sys_dup2(int oldfd, int newfd)
 	fold->countRef++;
 	VOP_INCREF(fold->vn);
 
-	return newfd;
+	*retval=newfd;
 #else
     kprintf("sys_dup2 not supported\n");
     return -1;
 
 #endif
 
-}
-
-int
-sys_chdir(userptr_t path){
-#if OPT_FILE
-	char kbuf[MAX_DIR_LEN];
-	int err;
-
-	KASSERT(curthread!=NULL);
-	KASSERT(curthread->t_proc!=NULL);
-
-	err=copyinstr(path,kbuf,strlen((char*)path)*sizeof(char),NULL);
-	if(err)
-		return err;
-
-	err=vfs_chdir(kbuf);
-	if(err)
-		return err;
-
-	return 0;
-#else
-	kprintf("sys_chdir not supported\n");
-	return -1;
-
-#endif
 
 }
-
-int
-sys___getcwd(userptr_t buf,size_t len,int *retval){
-#if OPT_FILE
-	struct uio ruio;
-	struct iovec iov;
-	int err;
-
-	KASSERT(curthread!=NULL);
-	KASSERT(curthread->t_proc!=NULL);
-
-	uio_kinit(&iov,&ruio,buf,len,0,UIO_READ);
-
-	//the given pointer lives in userspace
-	ruio.uio_space=curthread->t_proc->p_addrspace;
-	ruio.uio_segflg=UIO_USERSPACE;
-
-	err=vfs_getcwd(&ruio);
-	if(err)
-		return err;
-
-	*retval=len-ruio.uio_resid;
-	return 0;
-
-#else
-	kprintf("sys___getcwd not supported\n");
-	return -1;
-#endif
-
-}
-
-

@@ -394,7 +394,6 @@ defoption execv
 defoption file
 
 optfile syscalls syscall/file_syscalls.c
-#optfile syscalls syscall/proc_syscalls.c
 optfile syscalls syscall/exit.c
 optfile syscalls syscall/waitpid.c
 optfile syscalls syscall/getpid.c

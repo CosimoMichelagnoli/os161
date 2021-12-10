@@ -400,6 +400,7 @@ optfile syscalls syscall/waitpid.c
 optfile syscalls syscall/getpid.c
 optfile syscalls syscall/fork.c
 optfile syscalls syscall/execv.c
+optfile syscalls syscall/lseek.c
 
 ########################################
 #                                      #

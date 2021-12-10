@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+
+void superClose(int fd1, int fd2){
+	close(fd1);
+	close(fd2);
+}
+int main(void){
+	
+	int fd,newfd=30;
+	char buf[10];
+	size_t byte;
+	fd=open("test.txt",O_CREAT|O_RDWR, NULL);
+	newfd=dup2(fd,newfd);
+	if(newfd==-1)
+	{
+		printf("test failed\n");
+		close(fd);
+		return -1;
+	}
+
+	byte=5;
+	if(write(fd,"test\0",byte)!=(int)byte)
+	{
+		printf("write failed\n");
+		superClose(fd,newfd);
+		return -1;
+	}
+	if(lseek(newfd,0,SEEK_SET)==-1){
+
+		printf("lseek failed\n");
+		superClose(fd,newfd);
+		return -1;
+	}
+	if(read(newfd,buf,byte)!=(int)byte)
+	{
+		printf("read failed\nbuf:%s",buf);
+		superClose(fd,newfd);
+		return -1;
+	}
+	if(!strcmp(buf,"test\0")){
+		printf("test succeded\n");
+		superClose(fd,newfd);
+		return 0;
+	}
+	superClose(fd,newfd);
+	return -1;
+
+}
