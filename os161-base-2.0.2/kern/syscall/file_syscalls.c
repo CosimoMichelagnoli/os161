@@ -128,12 +128,6 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
   lock_acquire(of->lk);
   vn = of->vn;
   if (vn==NULL) return -1;
-<<<<<<< HEAD
-  //spinlock_acquire(&curproc->p_lock);
-=======
-
->>>>>>> 3de5170eaf39c72d87de0e3ebdc2c0933e2377c7
-  
 
   iov.iov_ubase = buf_ptr;
   iov.iov_len = size;
@@ -149,13 +143,11 @@ file_read(int fd, userptr_t buf_ptr, size_t size) {
   result = VOP_READ(vn, &u);
   if (result) {
     lock_release(of->lk);
-    //spinlock_release(&curproc->p_lock);
     return result;
   }
 
   of->offset = u.uio_offset;
   lock_release(of->lk);
-  //spinlock_release(&curproc->p_lock);
   return (size - u.uio_resid);
 }
 
@@ -206,19 +198,11 @@ valid_flags(int flags){
 	int count = 0;
 	flags = flags & O_ACCMODE;
 
-<<<<<<< HEAD
-	if(flags  == O_RDONLY) count++;
-
-	if(flags  == O_WRONLY) count++;
-
-	if(flags  == O_RDWR) count ++;
-=======
 	if(flags == O_RDONLY) count++;
 
 	if(flags == O_WRONLY) count++;
 
 	if(flags == O_RDWR) count ++;
->>>>>>> 3de5170eaf39c72d87de0e3ebdc2c0933e2377c7
 
 	return count == 1;
 }
@@ -373,7 +357,7 @@ sys_write(int fd, userptr_t buf_ptr, size_t size)
   }
 
   //lock_acquire(of->lk);
-  kprintf("...................\n");
+  //kprintf("...................\n");
   for (i=0; i<(int)size; i++) {
     putch(p[i]);
   }
@@ -414,7 +398,7 @@ sys_read(int fd, userptr_t buf_ptr, size_t size)
   }
 
   //lock_acquire(of->lk);
-  kprintf("..................\n");
+  //kprintf("..................\n");
   for (i=0; i<(int)size; i++) {
     p[i] = getch();
     if (p[i] < 0){
@@ -475,7 +459,7 @@ sys_chdir(userptr_t path){
 	KASSERT(curthread!=NULL);
 	KASSERT(curthread->t_proc!=NULL);
 
-	err=copyinstr(path,kbuf,strlen((char*)path)*sizeof(char),NULL);
+	err=copyinstr(path,kbuf,sizeof(kbuf),NULL);
 	if(err)
 		return err;
 
@@ -503,9 +487,10 @@ sys___getcwd(userptr_t buf,size_t len,int *retval){
 	KASSERT(curthread->t_proc!=NULL);
 
 	uio_kinit(&iov,&ruio,buf,len,0,UIO_READ);
+	iov.iov_ubase = buf;
 
 	//the given pointer lives in userspace
-	ruio.uio_space=curthread->t_proc->p_addrspace;
+	ruio.uio_space=curproc->p_addrspace;
 	ruio.uio_segflg=UIO_USERSPACE;
 
 	err=vfs_getcwd(&ruio);

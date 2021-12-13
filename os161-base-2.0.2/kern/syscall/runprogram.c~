@@ -64,7 +64,7 @@ runprogram(char *progname, unsigned long argc, char **args)
 	size_t len;
 	size_t stackoffset = 0;
 	char **argvptr;
-	vaddr_t uprogname[argc];
+	vaddr_t uprogname[1];
 	//userptr_t argv = ptr;
 
 	/* Open the file. */
@@ -135,7 +135,7 @@ runprogram(char *progname, unsigned long argc, char **args)
 			kfree(argvptr);
 			return result;
 		}		
-		
+		//stackptr -= sizeof(char *);
 		/* Warp to user mode. */
 
 		enter_new_process(argc /*argc*/, (userptr_t) stackptr/*NULL (void*)argsuserspace addr of argv*/,
@@ -148,12 +148,12 @@ runprogram(char *progname, unsigned long argc, char **args)
 		uprogname[0] = stackptr - len;
 		copyoutstr(progname, (userptr_t) uprogname[0], len, NULL);
 
-		len += sizeof(vaddr_t)*argc;
+		len += sizeof(vaddr_t);
 		stackptr = stackptr - len - ((stackptr - len)%8);
-		copyout(uprogname, (userptr_t) stackptr, sizeof(vaddr_t)*argc);		
+		copyout(uprogname, (userptr_t) stackptr, sizeof(vaddr_t));		
 
 		/* Warp to user mode. */
-		enter_new_process(argc /*argc*/, (userptr_t) stackptr/*userspace addr of argv*/,
+		enter_new_process(1 /*argc*/, (userptr_t) stackptr/*userspace addr of argv*/,
 				  NULL /*userspace addr of environment*/,
 				  stackptr, entrypoint);
 	}

@@ -114,14 +114,17 @@ runprogram(char *progname, unsigned long argc, char **args)
 		
 		for(i=0; i< (int) argc; i++){	
 
-			argvptr[i] =kmalloc(sizeof(char*));
+			argvptr[i] =(char*)kmalloc(sizeof(char*));
 			if(argvptr[i] == NULL)	
 				return ENOMEM;
 
 			len = strlen(args[i])+1;
-			while(len % 4 != 0)
-				len++;
+			/*while(len % 4 != 0)
+				len++;*/
 			stackptr = stackptr - len;
+			if(stackptr & 0x3)
+				stackptr -= (stackptr & 0x3); //padding
+
 			copyoutstr(args[i], (userptr_t) stackptr, len,NULL);
 			argvptr[i] = (char *) stackptr;
 		}
@@ -135,7 +138,7 @@ runprogram(char *progname, unsigned long argc, char **args)
 			kfree(argvptr);
 			return result;
 		}		
-		
+		//stackptr -= sizeof(char *);
 		/* Warp to user mode. */
 
 		enter_new_process(argc /*argc*/, (userptr_t) stackptr/*NULL (void*)argsuserspace addr of argv*/,

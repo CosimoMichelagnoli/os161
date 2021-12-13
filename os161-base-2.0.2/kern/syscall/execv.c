@@ -31,6 +31,7 @@ sys_execv(char *progname, char **args){
 	//userptr_t userArgs;
 	KASSERT(args !=NULL);
 	size_t wasteOfSpace;
+	size_t stackoffset = 0;
 	
 	//--------------------copy arguments from user space into kernel------------------------- 
 	
@@ -57,9 +58,9 @@ sys_execv(char *progname, char **args){
 		}
 		i++;
 	}
+	argc=i;  //keep trac of #arg
 	kargs[i] = NULL;
 
-	argc=i;  //keep trac of #arg
 	
 	kprogname = (char *) kmalloc(strlen(progname)+1);
 	if(kprogname == NULL)	
@@ -119,21 +120,21 @@ sys_execv(char *progname, char **args){
 	uargs = (char **) kmalloc(sizeof(char **) * argc);
 	if(uargs == NULL)	
 		return ENOMEM;
-	uargs[argc] = NULL;
+	uargs[argc] = 0;
 
 	for ( i=0; i<argc; ++i){
 
+		uargs[i] =(char*)kmalloc(sizeof(char*));
+		if(uargs[i] == NULL)	
+				return ENOMEM;
 		arglen = strlen(kargs[i])+1;
-		uargs[i] =kmalloc(sizeof(char*));
 
-		//TODO padding
 		stackptr -= arglen;
+
 		if(stackptr & 0x3)
-			stackptr -= (stackptr & 0x3); //padding
-	
-		uargs[i] = (char *)stackptr; //saving the addresso of the stackptr for each element
-
-
+				stackptr -= (stackptr & 0x3); //padding
+		/*if(arglen % 4 != 0)
+			arglen = arglen + (4 -(arglen%4)); //padding*/
 		result = copyoutstr(kargs[i], (userptr_t)stackptr , arglen, &wasteOfSpace); //copy into the user stack the first elemente of kernel args 
 	
 		if(result){
@@ -141,12 +142,23 @@ sys_execv(char *progname, char **args){
 			kfree(kargs);
 			return result;
 			}
+	
+		uargs[i] = (char *)stackptr; //saving the addresso of the stackptr for each element
+
+
 	}
 
 	//userArgs = (userptr_t)stackptr;
-
+	stackoffset += sizeof(char *)*(argc+1);
+	stackptr = stackptr - stackoffset;
+	result = copyout (uargs, (userptr_t) stackptr, sizeof(char *)*(argc));
+	if(result){
+		//kfree_all(kargs);
+		kfree(kargs);
+		return result;
+	}
 	
-	for ( i=0; i<argc; ++i){
+	/*for ( i=0; i<argc; ++i){
 		stackptr -= sizeof(char *); //move the stack pointer for an address
 		result = copyout(uargs[argc-(i+1)], (userptr_t)stackptr , sizeof(char *)); // 
 		
@@ -159,6 +171,7 @@ sys_execv(char *progname, char **args){
 		}
 
 	}
+	stackptr -= sizeof(char *);*/
 	
 	
 
