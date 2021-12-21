@@ -16,6 +16,8 @@
 int
 sys_waitpid(pid_t pid, userptr_t statusp, int options)
 {
+  int result;  
+
   if(((uintptr_t)statusp % 4) != 0) return EFAULT;
 
   if(statusp == NULL) return EFAULT;
@@ -28,7 +30,11 @@ sys_waitpid(pid_t pid, userptr_t statusp, int options)
 
   struct proc *p = proc_search_pid(pid);
 
-  if (p==NULL) return -1;
+  if(p==NULL) return ESRCH;
+
+  if(p == curproc) return EPERM;
+
+  if(p == curproc->p_proc) return EPERM;
 
   if(p->p_proc != curproc) return ECHILD;
 
@@ -36,8 +42,11 @@ sys_waitpid(pid_t pid, userptr_t statusp, int options)
 
   s = proc_wait(p);
 
-  if (statusp!=NULL) 
-    *(int*)statusp = s;
+  if (statusp!=NULL){
+    result = copyout(&s, statusp, sizeof(int));
+    //*(int*)statusp = s;
+    if(result) return result;
+    }
   return pid;
 #else
   (void)options; /* not handled */

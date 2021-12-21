@@ -174,7 +174,6 @@ syscall(struct trapframe *tf)
 		break;}
 #endif		
 	    case SYS__exit:
-	        /* TODO: just avoid crash   */
  	        sys__exit((int)tf->tf_a0);
                 break;
 #if OPT_WAITPID

@@ -478,12 +478,14 @@ proc_wait(struct proc *proc)
         /* wait on semaphore or condition variable */ 
 #if USE_SEMAPHORE_FOR_WAITPID
         P(proc->p_sem);
+	return_status = _MKWAIT_EXIT(proc->p_status);
 #else
         lock_acquire(proc->cv_lock);
 	while(proc->exited == false) cv_wait(proc->p_cv,proc->cv_lock);
+	return_status = _MKWAIT_EXIT(proc->p_status);
         lock_release(proc->cv_lock);
 #endif
-        return_status = proc->p_status;//_MKWAIT_EXIT(proc->p_status);
+        
         proc_destroy(proc);
         return return_status;
 #else

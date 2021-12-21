@@ -139,7 +139,7 @@ syscall(struct trapframe *tf)
 		if(retval<0) err=retval;
 		break;
 	    case SYS___getcwd:
-		err=sys___getcwd((userptr_t)tf->tf_a0,(size_t)tf->tf_a1,&retval);
+		err=sys___getcwd((char*)tf->tf_a0,(size_t)tf->tf_a1,&retval);
 		break;  
             case SYS_remove:
 	      /* just ignore: do nothing */
