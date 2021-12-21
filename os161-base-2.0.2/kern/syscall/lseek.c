@@ -8,6 +8,7 @@
 #include <kern/errno.h>
 #include <syscall.h>
 #include <current.h>
+#include <synch.h>
 #if OPT_FILE
 #include <vnode.h>
 #include <vfs.h>
@@ -23,8 +24,8 @@ sys_lseek(int fd, off_t offset, int whence, off_t *retval){
 	SEEK_CUR -> the new position is current + offset
 	SEEK_END -> the new position is end-of-file + offset
 	else FAIL*/
-	/*struct vnode *vn;
-	int err;*/
+	struct vnode *vn;
+	int err;
 	struct openfile *of = NULL;
 	off_t newoffset;
 	
@@ -32,6 +33,7 @@ sys_lseek(int fd, off_t offset, int whence, off_t *retval){
 	if (fd<0||fd>OPEN_MAX) return EBADF;
   	of = curproc->fileTable[fd];
   	if ((of==NULL) || (of->countRef == 0)) return EBADF;
+	lock_acquire(of->lk);
 
 	if(whence == SEEK_SET){
 		newoffset = offset;
@@ -42,18 +44,21 @@ sys_lseek(int fd, off_t offset, int whence, off_t *retval){
 			VOP_STAT(of->vn, file_stat);
 			newoffset = file_stat->st_size + offset;
 	} else{
+		lock_release(of->lk);
 		return EINVAL;
 	}
 	if (newoffset < 0) /*|| (newoffset > EOF)*/ return EINVAL;
 
 
-	/*vn = of->vn;
-	err = VOP_TRYSEEK(vn, newoffset);
-	if (err) return err;*/
-	
+	vn = of->vn;
+	err = VOP_ISSEEKABLE(vn);
+	if (err){
+		lock_release(of->lk);		
+		return ESPIPE;
+	}
 	of->offset = newoffset;
 	*retval = newoffset;
-
+	lock_release(of->lk);
 	return 0;
 
 #endif

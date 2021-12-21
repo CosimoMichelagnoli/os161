@@ -161,6 +161,7 @@ syscall(struct trapframe *tf)
 		else err = 0;
                 break;
 	    case SYS_lseek: 
+		{
 		off_t offset;    //should be in a2:a3
 		int whence;    //should be in sp+16
 		//join32to64(tf->tf_a2, tf->tf_a3, &offset);
@@ -170,8 +171,8 @@ syscall(struct trapframe *tf)
 		err = sys_lseek(tf->tf_a0, offset, whence, &retval64);
 				//int fd  off_t pos  int whence 
 		handle64 = true;
-		break;
-#endif
+		break;}
+#endif		
 	    case SYS__exit:
 	        /* TODO: just avoid crash   */
  	        sys__exit((int)tf->tf_a0);

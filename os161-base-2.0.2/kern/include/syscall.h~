@@ -32,6 +32,7 @@
 
 
 #include <cdefs.h> /* for __DEAD */
+#include <limits.h>
 #include "opt-syscalls.h"
 #include "opt-fork.h"
 #include "opt-file.h"
@@ -66,6 +67,18 @@ int sys_reboot(int code);
 int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
 #if OPT_SYSCALLS
 #if OPT_FILE
+#define SYSTEM_OPEN_MAX (10*OPEN_MAX)
+/* system open file table */
+struct openfile {
+  struct vnode *vn;
+  off_t offset;	
+  int accmode;
+  unsigned int countRef;
+  struct lock *lk;
+};
+
+struct openfile systemFileTable[SYSTEM_OPEN_MAX];
+
 void openfileIncrRefCount(struct openfile *of);
 bool valid_flags(int flags);
 int sys_open(userptr_t path, int openflags, mode_t mode, int *errp);

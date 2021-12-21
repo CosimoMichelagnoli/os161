@@ -246,7 +246,7 @@ sys_open(userptr_t path, int openflags, mode_t mode, int *errp)
 
 	  if (of==NULL) { 
 		    // no free slot in system open file table
-		    *errp = ENFILE;
+		    *errp = ENOSPC;
 	  }
 	  else {
 		  of->lk = lock_create("file lock");
@@ -477,26 +477,44 @@ sys_chdir(userptr_t path){
 }
 
 int
-sys___getcwd(userptr_t buf,size_t len,int *retval){
+sys___getcwd(char *buf,size_t len,int *retval){
 #if OPT_FILE
 	struct uio ruio;
 	struct iovec iov;
-	int err;
+	int err = 0;
 
 	KASSERT(curthread!=NULL);
 	KASSERT(curthread->t_proc!=NULL);
 
-	uio_kinit(&iov,&ruio,buf,len,0,UIO_READ);
-	iov.iov_ubase = buf;
+	/*uio_kinit(&iov,&ruio,(userptr_t) buf,len-1,0,UIO_READ);
+	iov.iov_ubase =(userptr_t) buf;
 
 	//the given pointer lives in userspace
-	ruio.uio_space=curthread->t_proc->p_addrspace;
-	ruio.uio_segflg=UIO_USERSPACE;
+	ruio.uio_space=curproc->p_addrspace;
+	ruio.uio_segflg=UIO_USERSPACE;*/
+	if(curproc->p_cwd == NULL)
+		return ENOENT;
+	
+	iov.iov_ubase = (userptr_t) buf;
+	iov.iov_len = len;
+	ruio.uio_iov = &iov;
+	ruio.uio_iovcnt = 1;
+	ruio.uio_offset = 0;
+	ruio.uio_resid = len;
+	ruio.uio_segflg = UIO_USERSPACE;
+	ruio.uio_rw = UIO_READ;
+	ruio.uio_space = curproc->p_addrspace;
 
 	err=vfs_getcwd(&ruio);
-	if(err)
+	if(err){
+		kprintf("vfs_getcwd failed (%s)\n", strerror(err));
 		return err;
+	}
+	/* null terminate */
+	//buf[len-1-ruio.uio_resid] = NULL;
 
+	/* print it */
+	kprintf("%s\n", buf);
 	*retval=len-ruio.uio_resid;
 	return 0;
 

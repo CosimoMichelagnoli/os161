@@ -60,7 +60,8 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
     proc_destroy(newp); 
     return ENOMEM; 
   }
-  newp->p_proc = curproc;
+
+  newp->p_proc = curproc; //link from child to parent
 
 
   proc_file_table_copy(curproc,newp);

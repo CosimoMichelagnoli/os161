@@ -4,6 +4,8 @@
  */
 #include <types.h>
 #include <lib.h>
+#include <stat.h>
+#include <vnode.h>
 #include <kern/errno.h>
 #include <proc.h>
 #include <copyinout.h> 
@@ -32,6 +34,10 @@ sys_execv(char *progname, char **args){
 	KASSERT(args !=NULL);
 	size_t wasteOfSpace;
 	size_t stackoffset = 0;
+
+	if(progname == NULL || args == NULL) return EFAULT;
+	if(progname == '\0') return ENOEXEC;
+	
 	
 	//--------------------copy arguments from user space into kernel------------------------- 
 	
@@ -72,6 +78,7 @@ sys_execv(char *progname, char **args){
 		kfree(kprogname);
 		return result;
 	}
+	if(strcmp(kprogname ,"") == 0) return EISDIR;
 
 
 
@@ -82,8 +89,9 @@ sys_execv(char *progname, char **args){
 	/* Open the file. */
 	result = vfs_open(kprogname, O_RDONLY, 0, &v);
 	if (result) {
-		return result;
+		return ENODEV;
 	}
+	
 	proc_setas(NULL);
 	KASSERT(proc_getas() == NULL);
 	//KASSERT(curthread->t_addrspace == NULL);

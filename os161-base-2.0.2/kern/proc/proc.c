@@ -50,12 +50,11 @@
 #include <vnode.h>
 #include <syscall.h>
 
-#include <opt-waitpid.h>
-#include <opt-fork.h>
-#include <opt-file.h>
+
 
 #if OPT_WAITPID
 #include <synch.h>
+#include <kern/wait.h>
 
 #define MAX_PROC 100
 static struct _processTable {
@@ -484,7 +483,7 @@ proc_wait(struct proc *proc)
 	while(proc->exited == false) cv_wait(proc->p_cv,proc->cv_lock);
         lock_release(proc->cv_lock);
 #endif
-        return_status = proc->p_status;
+        return_status = proc->p_status;//_MKWAIT_EXIT(proc->p_status);
         proc_destroy(proc);
         return return_status;
 #else

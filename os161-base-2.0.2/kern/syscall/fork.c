@@ -15,6 +15,7 @@
 #include <syscall.h>
 
 
+#define MAX_PROC 100
 
 #if OPT_FORK
 static void
@@ -36,6 +37,7 @@ int sys_fork(struct trapframe *ctf, pid_t *retval) {
   KASSERT(curproc != NULL&&thread !=NULL);
   KASSERT(debug != NULL);
 
+  if(curproc->p_pid >= MAX_PROC) return EAGAIN;
   newp = proc_create_runprogram(curproc->p_name);
   if (newp == NULL) {
     return ENOMEM;
