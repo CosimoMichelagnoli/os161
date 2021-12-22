@@ -8,6 +8,7 @@
 #include <kern/errno.h>
 #include <syscall.h>
 #include <current.h>
+#include <synch.h>
 #if OPT_FILE
 #include <vnode.h>
 #include <vfs.h>

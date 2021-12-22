@@ -51,7 +51,7 @@ sys_lseek(int fd, off_t offset, int whence, off_t *retval){
 
 
 	vn = of->vn;
-	err = VOP_ISSEEKABLE(vn);
+	err = !VOP_ISSEEKABLE(vn);
 	if (err){
 		lock_release(of->lk);		
 		return ESPIPE;
