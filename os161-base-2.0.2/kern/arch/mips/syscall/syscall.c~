@@ -37,10 +37,9 @@
 #include <syscall.h>
 #include <copyinout.h>
 
-#include <opt-waitpid.h>
 #include <opt-fork.h>
 #include <opt-file.h>
-#include <opt-syscalls.h>
+#include <opt-shellc2.h>
 #include <opt-execv.h>
 
 /*
@@ -119,7 +118,7 @@ syscall(struct trapframe *tf)
 		break;
 
 	    /* Add stuff here */
-#if OPT_SYSCALLS
+#if OPT_SHELLC2
 #if OPT_FILE
 	    case SYS_open:
 	        retval = sys_open((userptr_t)tf->tf_a0,
@@ -174,7 +173,6 @@ syscall(struct trapframe *tf)
 		break;}
 #endif		
 	    case SYS__exit:
-	        /* TODO: just avoid crash   */
  	        sys__exit((int)tf->tf_a0);
                 break;
 #if OPT_WAITPID

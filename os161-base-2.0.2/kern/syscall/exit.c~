@@ -17,11 +17,10 @@ sys__exit(int status)
   KASSERT(curproc != NULL);
 #if OPT_WAITPID
   struct proc *p = curproc;
-  spinlock_acquire(&p->p_lock);
+  //spinlock_acquire(&p->p_lock);
   p->p_status = status & 0xff; /* just lower 8 bits returned */
-  spinlock_release(&p->p_lock);
+  //spinlock_release(&p->p_lock);
   proc_remthread(curthread);
-  p->exited = true;
   proc_signal_end(p);
 
 #else

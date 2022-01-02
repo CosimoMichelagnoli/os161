@@ -15,7 +15,7 @@ void
 sys__exit(int status)
 {
   KASSERT(curproc != NULL);
-#if OPT_WAITPID
+#if OPT_SHELLC2
   struct proc *p = curproc;
   //spinlock_acquire(&p->p_lock);
   p->p_status = status & 0xff; /* just lower 8 bits returned */

@@ -26,7 +26,7 @@ sys_waitpid(pid_t pid, userptr_t statusp, int options)
 
   if(options != 0 && options != 1 && options != 2) return EINVAL;
 
-#if OPT_WAITPID
+#if OPT_SHELLC2
 
   struct proc *p = proc_search_pid(pid);
 

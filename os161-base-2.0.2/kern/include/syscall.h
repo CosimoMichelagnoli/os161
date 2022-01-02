@@ -33,10 +33,9 @@
 
 #include <cdefs.h> /* for __DEAD */
 #include <limits.h>
-#include "opt-syscalls.h"
+#include "opt-shellc2.h"
 #include "opt-fork.h"
 #include "opt-file.h"
-#include "opt-waitpid.h"
 #include "opt-execv.h"
 
 struct trapframe; /* from <machine/trapframe.h> */
@@ -65,7 +64,7 @@ __DEAD void enter_new_process(int argc, userptr_t argv, userptr_t env,
 
 int sys_reboot(int code);
 int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
-#if OPT_SYSCALLS
+#if OPT_SHELLC2
 #if OPT_FILE
 #define SYSTEM_OPEN_MAX (10*OPEN_MAX)
 /* system open file table */

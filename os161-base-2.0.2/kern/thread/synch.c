@@ -40,7 +40,7 @@
 #include <current.h>
 #include <synch.h>
 
-#include <opt-synch.h>
+#include <opt-shellc2.h>
 
 ////////////////////////////////////////////////////////////
 //
@@ -162,7 +162,7 @@ lock_create(const char *name)
 
         // add stuff here as needed
 
-#if OPT_SYNCH
+#if OPT_SHELLC2
 #if USE_SEMAPHORE_FOR_LOCK
         lock->lk_sem = sem_create(lock->lk_name,1);
 	if (lock->lk_sem == NULL) {
@@ -186,7 +186,7 @@ lock_destroy(struct lock *lock)
         KASSERT(lock != NULL);
 
         // add stuff here as needed
-#if OPT_SYNCH
+#if OPT_SHELLC2
 	spinlock_cleanup(&lock->lk_lock);
 #if USE_SEMAPHORE_FOR_LOCK
         sem_destroy(lock->lk_sem);
@@ -202,7 +202,7 @@ void
 lock_acquire(struct lock *lock)
 {
         // Write this
-#if OPT_SYNCH
+#if OPT_SHELLC2
         KASSERT(lock != NULL);
 	KASSERT(!(lock_do_i_hold(lock)));
 
@@ -238,7 +238,7 @@ void
 lock_release(struct lock *lock)
 {
         // Write this
-#if OPT_SYNCH
+#if OPT_SHELLC2
 	KASSERT(lock != NULL);
 	KASSERT(lock_do_i_hold(lock));
 	spinlock_acquire(&lock->lk_lock);
@@ -260,7 +260,7 @@ bool
 lock_do_i_hold(struct lock *lock)
 {
         // Write this
-#if OPT_SYNCH
+#if OPT_SHELLC2
         bool res;
 	/*  G.Cabodi - 2019: this could possibly work without spinlock for mutual 
 	    exclusion, which could simplify the semaphore-based solution, by 
@@ -307,7 +307,7 @@ cv_create(const char *name)
         }
 
         // add stuff here as needed
-#if OPT_SYNCH
+#if OPT_SHELLC2
 	cv->cv_wchan = wchan_create(cv->cv_name);
 	if (cv->cv_wchan == NULL) {
 	        kfree(cv->cv_name);
@@ -325,7 +325,7 @@ cv_destroy(struct cv *cv)
         KASSERT(cv != NULL);
 
         // add stuff here as needed
-#if OPT_SYNCH
+#if OPT_SHELLC2
 	spinlock_cleanup(&cv->cv_lock);
 	wchan_destroy(cv->cv_wchan);
 #endif
@@ -337,7 +337,7 @@ void
 cv_wait(struct cv *cv, struct lock *lock)
 {
         // Write this
-#if OPT_SYNCH
+#if OPT_SHELLC2
         KASSERT(lock != NULL);
 	KASSERT(cv != NULL);
 	KASSERT(lock_do_i_hold(lock));
@@ -362,7 +362,7 @@ void
 cv_signal(struct cv *cv, struct lock *lock)
 {
         // Write this
-#if OPT_SYNCH
+#if OPT_SHELLC2
         KASSERT(lock != NULL);
 	KASSERT(cv != NULL);
 	KASSERT(lock_do_i_hold(lock));
@@ -380,7 +380,7 @@ void
 cv_broadcast(struct cv *cv, struct lock *lock)
 {
 	// Write this
-#if OPT_SYNCH
+#if OPT_SHELLC2
         KASSERT(lock != NULL);
 	KASSERT(cv != NULL);
 	KASSERT(lock_do_i_hold(lock));

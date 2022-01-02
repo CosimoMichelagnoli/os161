@@ -386,20 +386,20 @@ file      main/menu.c
 
 #### SHELL-C2 KERNEL####
 
-defoption syscalls
-defoption synch
-defoption waitpid
+
+
 defoption fork
 defoption execv
 defoption file
+defoption shellc2
 
-optfile syscalls syscall/file_syscalls.c
-optfile syscalls syscall/exit.c
-optfile syscalls syscall/waitpid.c
-optfile syscalls syscall/getpid.c
-optfile syscalls syscall/fork.c
-optfile syscalls syscall/execv.c
-optfile syscalls syscall/lseek.c
+optfile shellc2 syscall/file_syscalls.c
+optfile shellc2 syscall/exit.c
+optfile shellc2 syscall/waitpid.c
+optfile shellc2 syscall/getpid.c
+optfile shellc2 syscall/fork.c
+optfile shellc2 syscall/execv.c
+optfile shellc2 syscall/lseek.c
 
 ########################################
 #                                      #

@@ -52,7 +52,7 @@
 
 
 
-#if OPT_WAITPID
+#if OPT_SHELLC2
 #include <synch.h>
 #include <kern/wait.h>
 
@@ -76,7 +76,7 @@ struct proc *kproc;
  */
 struct proc *
 proc_search_pid(pid_t pid) {
-#if OPT_WAITPID
+#if OPT_SHELLC2
   struct proc *p;
   KASSERT(pid>=0&&pid<MAX_PROC);
   p = processTable.proc[pid];
@@ -94,7 +94,7 @@ proc_search_pid(pid_t pid) {
  */
 static void
 proc_init_waitpid(struct proc *proc, const char *name) {
-#if OPT_WAITPID
+#if OPT_SHELLC2
   /* search a free index in table using a circular strategy */
   int i;
   spinlock_acquire(&processTable.lk);
@@ -141,7 +141,7 @@ proc_init_waitpid(struct proc *proc, const char *name) {
 static void
 proc_end_waitpid(struct proc *proc) {
   
-#if OPT_WAITPID
+#if OPT_SHELLC2
   /* remove the process from the table */
   int i,n;
   //struct array *a;
@@ -320,7 +320,7 @@ proc_bootstrap(void)
 	if (kproc == NULL) {
 		panic("proc_create for kproc failed\n");
 	}
-#if OPT_WAITPID
+#if OPT_SHELLC2
 	spinlock_init(&processTable.lk);
 	/* kernel process is not registered in the table */
 	processTable.active = 1;
@@ -469,7 +469,7 @@ proc_setas(struct addrspace *newas)
 int 
 proc_wait(struct proc *proc)
 {
-#if OPT_WAITPID
+#if OPT_SHELLC2
         int return_status;
         /* NULL and kernel proc forbidden */
 	KASSERT(proc != NULL);

@@ -51,7 +51,7 @@
 #include <mainbus.h>
 #include <vnode.h>
 
-#include <opt-waitpid.h>
+#include <opt-shellc2.h>
 
 /* Magic number used as a guard value on kernel thread stacks. */
 #define THREAD_STACK_MAGIC 0xbaadf00d
@@ -788,7 +788,7 @@ thread_exit(void)
 	 * Detach from our process. You might need to move this action
 	 * around, depending on how your wait/exit works.
 	 */
-#if OPT_WAITPID
+#if OPT_SHELLC2
 	if (cur->t_proc!=NULL)
 	  proc_remthread(cur);
 #else
