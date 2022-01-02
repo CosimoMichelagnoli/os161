@@ -388,8 +388,6 @@ file      main/menu.c
 
 
 
-defoption fork
-defoption execv
 defoption file
 defoption shellc2
 

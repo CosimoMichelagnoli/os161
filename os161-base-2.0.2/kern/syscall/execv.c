@@ -18,7 +18,7 @@
 #include <synch.h>
 #include <syscall.h>
 
-#if OPT_EXECV
+#if OPT_SHELLC2
 int
 sys_execv(char *progname, char **args){
 	//TODO check to free all the memory in case of error

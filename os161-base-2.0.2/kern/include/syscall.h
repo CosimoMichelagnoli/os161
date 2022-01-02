@@ -34,9 +34,7 @@
 #include <cdefs.h> /* for __DEAD */
 #include <limits.h>
 #include "opt-shellc2.h"
-#include "opt-fork.h"
 #include "opt-file.h"
-#include "opt-execv.h"
 
 struct trapframe; /* from <machine/trapframe.h> */
 
@@ -92,10 +90,8 @@ int sys_lseek(int fd, off_t offset, int whence, off_t *retval);
 void sys__exit(int status);
 int sys_waitpid(pid_t pid, userptr_t statusp, int options);
 pid_t sys_getpid(void);
-#if OPT_FORK
+#if OPT_SHELLC2
 int sys_fork(struct trapframe *ctf, pid_t *retval);
-#endif
-#if OPT_EXECV
 int sys_execv(char *progname, char **args);
 #endif
 

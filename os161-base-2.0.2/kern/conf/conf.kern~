@@ -387,8 +387,6 @@ file      main/menu.c
 #### SHELL-C2 KERNEL####
 
 
-defoption waitpid
-defoption fork
 defoption execv
 defoption file
 defoption shellc2

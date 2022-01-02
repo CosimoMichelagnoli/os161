@@ -37,10 +37,9 @@
 #include <syscall.h>
 #include <copyinout.h>
 
-#include <opt-fork.h>
 #include <opt-file.h>
 #include <opt-shellc2.h>
-#include <opt-execv.h>
+
 
 /*
  * System call dispatcher.
@@ -121,7 +120,6 @@ syscall(struct trapframe *tf)
 
 	    /* Add stuff here */
 #if OPT_SHELLC2
-#if OPT_FILE
 	    case SYS_open:
 	        retval = sys_open((userptr_t)tf->tf_a0,
 				  (int)tf->tf_a1,
@@ -173,11 +171,10 @@ syscall(struct trapframe *tf)
 				//int fd  off_t pos  int whence 
 		handle64 = true;
 		break;}
-#endif		
+	
 	    case SYS__exit:
  	        sys__exit((int)tf->tf_a0);
                 break;
-#if OPT_SHELLC2
 	    case SYS_waitpid:
 	        retval = sys_waitpid((pid_t)tf->tf_a0,
 				(userptr_t)tf->tf_a1,
@@ -190,20 +187,17 @@ syscall(struct trapframe *tf)
                 if (retval<0) err = ENOSYS; 
 		else err = 0;
                 break;
-#endif
 
-#if OPT_FORK
 	    case SYS_fork:
 	        err = sys_fork(tf,&retval);
                 break;
-#endif
-#if OPT_EXECV
+
 	     case SYS_execv:
 		err = sys_execv((char*)tf->tf_a0,
 				(char **)tf->tf_a1);
 		break;
 #endif
-#endif
+
 
 	    default:
 		kprintf("Unknown syscall %d\n", callno);
@@ -259,7 +253,7 @@ syscall(struct trapframe *tf)
 void
 enter_forked_process(struct trapframe *tf)
 {
-#if OPT_FORK
+#if OPT_SHELLC2
 	// Duplicate frame so it's on stack
 	struct trapframe forkedTf = *tf; // copy trap frame onto kernel stack
 

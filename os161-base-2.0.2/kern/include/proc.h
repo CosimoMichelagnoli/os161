@@ -40,7 +40,7 @@
 #include <limits.h>
 #include "opt-shellc2.h"
 #include "opt-file.h"
-#include "opt-fork.h"
+
 
 struct addrspace;
 struct thread;
@@ -90,9 +90,9 @@ struct proc {
 
 	struct proc *p_proc;	//parent process
 
-#if OPT_FORK
+
         struct array *p_children;
-#endif 
+ 
 
 #if USE_SEMAPHORE_FOR_WAITPID
 	struct semaphore *p_sem;
@@ -141,7 +141,7 @@ void proc_signal_end(struct proc *proc);
 #if OPT_FILE
 void proc_file_table_copy(struct proc *psrc, struct proc *pdest);
 #endif
-#if OPT_FORK
+#if OPT_SHELLC2
 void proc_addChild(struct proc *father, pid_t cpid);
 #endif
 #endif /* _PROC_H_ */

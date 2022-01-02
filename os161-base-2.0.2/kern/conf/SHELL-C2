@@ -33,8 +33,7 @@ options dumbvm			# Chewing gum and baling wire.
 
 
 
-options fork
+
 options file
-options execv
 options shellc2
 

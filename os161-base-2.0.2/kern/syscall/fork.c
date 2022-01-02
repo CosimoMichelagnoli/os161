@@ -17,7 +17,7 @@
 
 #define MAX_PROC 100
 
-#if OPT_FORK
+#if OPT_SHELLC2
 static void
 call_enter_forked_process(void *tfv, unsigned long dummy) {
   struct trapframe *tf = (struct trapframe *)tfv;

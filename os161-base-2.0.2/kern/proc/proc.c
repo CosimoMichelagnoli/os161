@@ -118,9 +118,9 @@ proc_init_waitpid(struct proc *proc, const char *name) {
   proc->p_status = 0;
   proc->exited = false;
 
-#if OPT_FORK
+
   proc->p_children=array_create();
-#endif
+
   
 #if USE_SEMAPHORE_FOR_WAITPID
   proc->p_sem = sem_create(name, 0);
@@ -154,7 +154,7 @@ proc_end_waitpid(struct proc *proc) {
   //a = proc->p_children;
 
 
-#if OPT_FORK
+
   n= array_num(proc->p_children);
   spinlock_acquire(&proc->p_lock);
   for(i=0; i<n;i++){
@@ -162,7 +162,7 @@ proc_end_waitpid(struct proc *proc) {
   }
   array_destroy(proc->p_children);
   spinlock_release(&proc->p_lock);
-#endif
+
 
 #if USE_SEMAPHORE_FOR_WAITPID
   sem_destroy(proc->p_sem);
@@ -175,7 +175,7 @@ proc_end_waitpid(struct proc *proc) {
 #endif
 }
 
-#if OPT_FORK
+#if OPT_SHELLC2
 void proc_addChild(struct proc *father,pid_t cpid){
   pid_t *temp= kmalloc(sizeof(pid_t));
   *temp=cpid;
