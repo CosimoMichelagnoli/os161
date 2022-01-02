@@ -230,6 +230,8 @@ lock_acquire(struct lock *lock)
         KASSERT(lock->lk_owner == NULL);
         lock->lk_owner=curthread;
 	spinlock_release(&lock->lk_lock);
+#else
+	(void)*lock;
 #endif
         
 }
@@ -251,6 +253,8 @@ lock_release(struct lock *lock)
         wchan_wakeone(lock->lk_wchan, &lock->lk_lock);
 #endif
 	spinlock_release(&lock->lk_lock);
+#else
+	(void)*lock;
 #endif
 
         
@@ -278,6 +282,9 @@ lock_do_i_hold(struct lock *lock)
 	res = lock->lk_owner == curthread;
 #endif
 	return res;
+#else
+	(void)*lock;
+	return true;
 #endif
 
 

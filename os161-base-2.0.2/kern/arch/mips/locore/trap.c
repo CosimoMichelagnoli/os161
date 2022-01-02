@@ -111,9 +111,9 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 	/*
 	 * You will probably want to change this.
 	 */
-	
+#if OPT_SHELLC2
 	sys__exit(0);
-
+#endif
 
 
 	kprintf("Fatal user mode trap %u sig %d (%s, epc 0x%x, vaddr 0x%x)\n",

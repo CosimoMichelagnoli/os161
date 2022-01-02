@@ -500,6 +500,7 @@ proc_wait(struct proc *proc)
 void
 proc_signal_end(struct proc *proc)
 {
+#if OPT_SHELLC2
 #if USE_SEMAPHORE_FOR_WAITPID
       proc->exited = true;
       V(proc->p_sem);
@@ -508,6 +509,9 @@ proc_signal_end(struct proc *proc)
       proc->exited = true;
       cv_signal(proc->p_cv,proc->cv_lock);
       lock_release(proc->cv_lock);
+#endif
+#else
+	(void) proc;
 #endif
 }
 
